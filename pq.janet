@@ -1,11 +1,11 @@
 (import _pq)
 
 (defn decode-bool
-  [oid is-binary s]
+  [oid s]
   (= s "t"))
 
 (defn decode-string
-  [oid is-binary s]
+  [oid s]
   s)
 
 (def default-decoder-table

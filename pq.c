@@ -116,6 +116,8 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
       } else {
         Oid t = PQftype(jpqr->r, j);
         int format = PQfformat(jpqr->r, j);
+        if (format != 0)
+          janet_panic("BUG: currently only text decoding is supported");
         char *v = PQgetvalue(jpqr->r, i, j);
         int l = PQgetlength(jpqr->r, i, j);
 
@@ -125,22 +127,20 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
 
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
-          Janet args[3];
+          Janet args[2];
           args[0] = janet_wrap_number((double)t);
-          args[1] = janet_wrap_boolean(format);
-          args[2] = janet_stringv(v, l);
+          args[1] = janet_stringv(v, l);
           JanetFunction *f = janet_unwrap_function(decoder);
           /* XXX should we reenable GC? */
-          jv = janet_call(f, 3, args);
+          jv = janet_call(f, 2, args);
           break;
         }
         case JANET_CFUNCTION: {
-          Janet args[3];
+          Janet args[2];
           args[0] = janet_wrap_number((double)t);
-          args[1] = janet_wrap_boolean(format);
-          args[2] = janet_stringv(v, l);
+          args[1] = janet_stringv(v, l);
           JanetCFunction f = janet_unwrap_cfunction(decoder);
-          jv = f(3, args);
+          jv = f(2, args);
           break;
         }
         default:
@@ -244,8 +244,9 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       break;
     case JANET_BOOLEAN:
       plengths[i] = 2;
-      pvals[i] = zsmalloc(2);
+      pvals[i] = janet_smalloc(2);
       pvals[i][0] = janet_unwrap_boolean(j) ? 't' : 'f';
+      pvals[i][1] = 0;
       break;
     case JANET_BUFFER: {
       JanetBuffer *b = janet_unwrap_buffer(j);
@@ -296,8 +297,9 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
 
       JanetByteView bytes = janet_getbytes(&view.items[2], 0);
 
-      pvals[i] = janet_smalloc(bytes.len);
+      pvals[i] = janet_smalloc(bytes.len + 1);
       memcpy(pvals[i], bytes.bytes, bytes.len);
+      pvals[i][bytes.len] = 0;
       plengths[i] = bytes.len;
       break;
     }
