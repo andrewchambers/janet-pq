@@ -301,7 +301,7 @@ JANET_MODULE_ENTRY(JanetTable *env) {
 
   janet_cfuns(env, "pq", cfuns);
 
-  #define DEF_CONSTANT_INT(X) janet_def(env, #X, janet_wrap_integer(X), NULL)
+#define DEF_CONSTANT_INT(X) janet_def(env, #X, janet_wrap_integer(X), NULL)
 
   /* PQresultStatus */
   DEF_CONSTANT_INT(PGRES_EMPTY_QUERY);
@@ -328,5 +328,5 @@ JANET_MODULE_ENTRY(JanetTable *env) {
   DEF_CONSTANT_INT(PG_DIAG_SOURCE_LINE);
   DEF_CONSTANT_INT(PG_DIAG_SOURCE_FUNCTION);
 
-  #undef DEF_CONSTANT_INT
+#undef DEF_CONSTANT_INT
 }

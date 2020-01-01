@@ -10,17 +10,13 @@
        ,b
      ([,err ,fiber] (,action) (,propagate ,err ,fiber)))))
 
-(defn cp
-  [from to]
-  (sh/$ ["cp" from to]))
-
 (defn cleanup []
   (each d (->>
             (sh/$$ ["find" "/tmp" "-maxdepth" "1" "-type" "d" "-name" "janet-pq-test.tmp.*"])
             (string/split "\n")
             (map string/trim)
             (filter (comp not empty?)))
-    (print "cleaning up " d " ...")
+    (print "cleaning up " d "...")
     (sh/$? ["pg_ctl" "-s" "-w" "-D" d "stop" "-m" "immediate"])
     (sh/$ ["rm" "-rf" d])))
 
@@ -48,7 +44,6 @@
 
 (set tests (fn []
   (print "running tests...")
-  (def conn (connect))
-  (pq/ping conn)))
+  (def conn (connect))))
 
 (run-tests)
