@@ -367,8 +367,8 @@ static const JanetReg cfuns[] = {
      "(pq/exec ctx query params)\n\n"
      "Execute a query, returning a pq.result value."
      "Params can be nil|string|buffer|number|u64|s64."
-     "If a param is an array or tuple, this must be a set of [TypeOID "
-     "String|Buffer]."
+     "If a param is an array or tuple, this must be a triple of [oid "
+     "boolean (is-binary) string|buffer]."
      "Otherwise params must handle the methods :pq/to-string and :pq/to-oid."},
     {"close", jpq_close,
      "(pq/close ctx)\n\n"
