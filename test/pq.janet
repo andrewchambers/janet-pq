@@ -1,6 +1,6 @@
 (import sh)
 (import process)
-(import ../pq :as pq)
+(import pq)
 
 (defmacro with-unconditional
   [action body]
