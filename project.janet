@@ -15,6 +15,10 @@
     (error "pkg-config failed!"))
   v)
 
+(declare-source
+    :name "pq"
+    :source ["pq.janet"])
+
 (declare-native
     :name "_pq"
     :cflags (pkg-config "libpq --cflags")
