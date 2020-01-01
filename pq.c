@@ -122,7 +122,6 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
         if (janet_checktype(decoder, JANET_NIL))
           janet_panicf("no decoder entry for oid '%d'", t);
 
-        /* XXX should we reenable GC? */
 
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
@@ -130,6 +129,7 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
           args[0] = janet_wrap_number((double)t);
           args[1] = janet_stringv(v, l);
           JanetFunction *f = janet_unwrap_function(decoder);
+          /* XXX should we reenable GC? */
           jv = janet_call(f, 2, args);
           break;
         }

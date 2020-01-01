@@ -19,4 +19,4 @@
     :name "_pq"
     :cflags (pkg-config "libpq --cflags")
     :lflags (pkg-config "libpq --libs")
-    :source ["mod.c"])
+    :source ["pq.c"])
