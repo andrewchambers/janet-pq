@@ -15,8 +15,29 @@ static int result_gc(void *p, size_t s) {
   return 0;
 }
 
+static void result_to_string(void *p, JanetBuffer *buffer) {
+  JPQresult *jpqr = (JPQresult *)p;
+
+  janet_buffer_push_cstring(buffer, "PGResult: ");
+
+  if (!jpqr->r) {
+    janet_buffer_push_cstring(buffer, "uninit");
+    return;
+  }
+
+  int status = PQresultStatus(jpqr->r);
+  if (status != PGRES_TUPLES_OK && status != PGRES_EMPTY_QUERY &&
+      status != PGRES_COMMAND_OK) {
+    char *msg = PQresultErrorMessage(jpqr->r);
+    janet_buffer_push_cstring(buffer, msg ? msg : "error");
+  } else {
+    janet_buffer_push_cstring(buffer, "...");
+  }
+}
+
 static const JanetAbstractType pq_result_type = {
-    "pq.result", result_gc, NULL, NULL, NULL, NULL, NULL, NULL};
+    "pq.result", result_gc,        NULL, NULL, NULL, NULL,
+    NULL,        result_to_string, NULL};
 
 static Janet safe_cstringv(char *s) {
   s ? janet_cstringv(s) : janet_wrap_nil();
@@ -85,6 +106,15 @@ static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
   int code = janet_getinteger(argv, 1);
   return safe_cstringv(PQresultErrorField(jpqr->r, code));
+}
+
+static Janet jpq_error_pred(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 2);
+  JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
+  int status = PQresultStatus(jpqr->r);
+  return janet_wrap_boolean(status != PGRES_TUPLES_OK &&
+                            status != PGRES_EMPTY_QUERY &&
+                            status != PGRES_COMMAND_OK);
 }
 
 static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
@@ -349,6 +379,12 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   janet_sfree(plengths);
   janet_sfree(poids);
 
+  int status = PQresultStatus(jpqr->r);
+
+  if (status != PGRES_TUPLES_OK && status != PGRES_EMPTY_QUERY &&
+      status != PGRES_COMMAND_OK)
+    janet_panicv(argv[0]);
+
   return janet_wrap_abstract(jpqr);
 }
 
@@ -359,31 +395,29 @@ static Janet jpq_close(int32_t argc, Janet *argv) {
   return janet_wrap_nil();
 }
 
+#define upstream_doc "See libpq documentation at https://www.postgresql.org."
+
 static const JanetReg cfuns[] = {
     {"connect", jpq_connect,
      "(pq/connect url)\n\n"
      "Connect to a postgres server or raise an error."},
-    {"exec", jpq_exec,
-     "(pq/exec ctx query params)\n\n"
-     "Execute a query, returning a pq.result value."
-     "Params can be nil|string|buffer|number|u64|s64."
-     "If a param is an array or tuple, this must be a triple of [oid "
-     "boolean (is-binary) string|buffer]."
-     "Otherwise params must handle the methods :pq/to-string and :pq/to-oid."},
+    {"exec", jpq_exec, "See pq/exec"},
     {"close", jpq_close,
      "(pq/close ctx)\n\n"
-     "Close a postgres context."},
-    {"result/ntuples", jpq_result_ntuples, NULL},
-    {"result/nfields", jpq_result_nfields, NULL},
-    {"result/fname", jpq_result_fname, NULL},
-    {"result/fnumber", jpq_result_fnumber, NULL},
-    {"result/ftype", jpq_result_ftype, NULL},
-    {"result/fformat", jpq_result_fformat, NULL},
-    {"result/status", jpq_result_status, NULL},
-    {"result/error-message", jpq_result_error_message, NULL},
-    {"result/error-field", jpq_result_error_field, NULL},
-    {"result/unpack", jpq_result_unpack, NULL},
-
+     "Close a pq context."},
+    {"error?", jpq_error_pred,
+    "(pq/error? result)\n\n"
+    "Check if an object is a pq.result containing an error."},
+    {"result/ntuples", jpq_result_ntuples, upstream_doc},
+    {"result/nfields", jpq_result_nfields, upstream_doc},
+    {"result/fname", jpq_result_fname, upstream_doc},
+    {"result/fnumber", jpq_result_fnumber, upstream_doc},
+    {"result/ftype", jpq_result_ftype, upstream_doc},
+    {"result/fformat", jpq_result_fformat, upstream_doc},
+    {"result/status", jpq_result_status, upstream_doc},
+    {"result/error-message", jpq_result_error_message, upstream_doc},
+    {"result/error-field", jpq_result_error_field, upstream_doc},
+    {"result/unpack", jpq_result_unpack, upstream_doc},
     {NULL, NULL, NULL}};
 
 JANET_MODULE_ENTRY(JanetTable *env) {
