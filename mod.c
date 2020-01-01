@@ -256,7 +256,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
                          plengths, NULL, 0);
 
   if (!jpqr->r)
-    janet_panic("query failed!");
+    janet_panic("query failed");
 
   /* Free in reverse order for sfree's sake */
   for (int i = argc - 1; i > 0; i--) {
