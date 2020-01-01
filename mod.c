@@ -257,6 +257,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
     janet_sfree(pvals[i]);
   }
   janet_sfree(pvals);
+  janet_sfree(pformats);
   janet_sfree(plengths);
   janet_sfree(poids);
 
