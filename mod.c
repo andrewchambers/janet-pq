@@ -127,6 +127,12 @@ static void __ensure_ctx_ok(Context *ctx) {
     janet_panic("pq context is disconnected");
 }
 
+static void *zsmalloc(size_t n) {
+  void *p = janet_smalloc(n);
+  memset(p, 0, n);
+  return p;
+}
+
 static Janet jpq_exec(int32_t argc, Janet *argv) {
   if (argc < 2)
     janet_panic("expected at least a pq context and a query string");
@@ -145,14 +151,10 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   argc -= 2;
   argv += 2;
 
-  Oid *poids = janet_smalloc(sizeof(Oid) * argc);
-  memset(poids, 0, sizeof(Oid) * argc);
-  int *plengths = janet_smalloc(sizeof(int) * argc);
-  memset(plengths, 0, sizeof(int) * argc);
-  int *pformats = janet_smalloc(sizeof(int) * argc);
-  memset(pformats, 0, sizeof(int) * argc);
-  char **pvals = janet_smalloc(sizeof(char *) * argc);
-  memset(pvals, 0, sizeof(char *) * argc);
+  Oid *poids = zsmalloc(sizeof(Oid) * argc);
+  int *plengths = zsmalloc(sizeof(int) * argc);
+  int *pformats = zsmalloc(sizeof(int) * argc);
+  char **pvals = zsmalloc(sizeof(char *) * argc);
 
   for (int i = 0; i < argc; i++) {
     Janet j = argv[i];
