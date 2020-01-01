@@ -87,6 +87,78 @@ static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
   return safe_cstringv(PQresultErrorField(jpqr->r, code));
 }
 
+static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 2);
+  JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
+  Janet decode_tab = argv[1];
+
+  int status = PQresultStatus(jpqr->r);
+
+  if (status == PGRES_EMPTY_QUERY || status == PGRES_COMMAND_OK)
+    return janet_wrap_nil();
+
+  if (status != PGRES_TUPLES_OK)
+    janet_panicv(argv[0]);
+
+  int n = PQntuples(jpqr->r);
+  int ncols = PQnfields(jpqr->r);
+
+  JanetArray *a = janet_array(n);
+
+  for (int i = 0; i < n; i++) {
+    JanetTable *t = janet_table(ncols);
+
+    for (int j = 0; j < ncols; j++) {
+      Janet jv;
+
+      if (PQgetisnull(jpqr->r, i, j)) {
+        jv = janet_wrap_nil();
+      } else {
+        Oid t = PQftype(jpqr->r, i);
+        char *v = PQgetvalue(jpqr->r, i, j);
+        int l = PQgetlength(jpqr->r, i, j);
+
+        Janet decoder = janet_get(decode_tab, janet_wrap_integer(t));
+        if (janet_checktype(decoder, JANET_NIL))
+          janet_panicf("no decoder entry for oid '%d'", t);
+
+        /* XXX should we reenable GC? */
+
+        switch (janet_type(decoder)) {
+        case JANET_FUNCTION: {
+          Janet args[2];
+          args[0] = janet_wrap_number((double)t);
+          args[1] = janet_stringv(v, l);
+          JanetFunction *f = janet_unwrap_function(decoder);
+          jv = janet_call(f, 2, args);
+          break;
+        }
+        case JANET_CFUNCTION: {
+          Janet args[2];
+          args[0] = janet_wrap_number((double)t);
+          args[1] = janet_stringv(v, l);
+          JanetCFunction f = janet_unwrap_cfunction(decoder);
+          jv = f(2, args);
+          break;
+        }
+        default:
+          /* XXX we could have an abstract type for more efficient c functions
+           */
+          janet_panic("decoder entry is not a callable function");
+        }
+      }
+
+      Janet k = safe_cstringv(PQfname(jpqr->r, j));
+
+      janet_table_put(t, k, jv);
+    }
+
+    janet_array_push(a, janet_wrap_table(t));
+  }
+
+  return janet_wrap_array(a);
+}
+
 typedef struct {
   PGconn *conn;
 } Context;
@@ -119,7 +191,7 @@ static Janet jpq_connect(int32_t argc, Janet *argv) {
     janet_panic("unable to create connection");
 
   if (PQstatus(ctx->conn) != CONNECTION_OK) {
-    /* GC cleans this up as we assigned to the type./ */
+    /* GC cleans this up as we assigned to the type. */
     janet_panicf("connection failed: %s", PQerrorMessage(ctx->conn));
   }
 
@@ -235,7 +307,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       }
     }
     default:
-      /* TODO, renable janet GC for this call? how do we do that? what do we
+      /* XXX: renable janet GC for this call? how do we do that? what do we
          need to root these values? */
       j = janet_mcall("pq/to-string", 1, &j);
       if (!janet_checktype(j, JANET_STRING) &&
@@ -300,6 +372,7 @@ static const JanetReg cfuns[] = {
     {"result/fformat", jpq_result_status, NULL},
     {"result/error-message", jpq_result_error_message, NULL},
     {"result/error-field", jpq_result_error_field, NULL},
+    {"result/unpack", jpq_result_error_field, NULL},
 
     {NULL, NULL, NULL}};
 
