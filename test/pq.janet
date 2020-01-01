@@ -1,6 +1,6 @@
 (import sh)
 (import process)
-(import build/pq :as pq)
+(import ../pq :as pq)
 
 (defmacro with-unconditional
   [action body]
@@ -44,6 +44,25 @@
 
 (set tests (fn []
   (print "running tests...")
-  (def conn (connect))))
+  (def conn (connect))
+  (pq/exec conn "create table foo (a text, b boolean);")
+  
+  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t1" true)
+  (unless
+    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t1"))
+       [{"a" "t1" "b" true}])
+    (error "fail"))
+
+  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t3" {:pq/marshal (fn [&] [16 false "t"])})
+  (unless
+    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t3"))
+       [{"a" "t3" "b" true}])
+    (error "fail"))
+
+  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t2" [16 false "f"])
+  (unless
+    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t2"))
+       [{"a" "t2" "b" false}])
+    (error "fail"))))
 
 (run-tests)

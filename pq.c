@@ -90,7 +90,7 @@ static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
 static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 2);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
-  Janet decode_tab = argv[1];
+  JanetTable *decode_tab = janet_gettable(argv, 1);
 
   int status = PQresultStatus(jpqr->r);
 
@@ -114,31 +114,33 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
       if (PQgetisnull(jpqr->r, i, j)) {
         jv = janet_wrap_nil();
       } else {
-        Oid t = PQftype(jpqr->r, i);
+        Oid t = PQftype(jpqr->r, j);
+        int format = PQfformat(jpqr->r, j);
         char *v = PQgetvalue(jpqr->r, i, j);
         int l = PQgetlength(jpqr->r, i, j);
 
-        Janet decoder = janet_get(decode_tab, janet_wrap_integer(t));
+        Janet decoder = janet_table_get(decode_tab, janet_wrap_integer(t));
         if (janet_checktype(decoder, JANET_NIL))
           janet_panicf("no decoder entry for oid '%d'", t);
 
-
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
-          Janet args[2];
+          Janet args[3];
           args[0] = janet_wrap_number((double)t);
-          args[1] = janet_stringv(v, l);
+          args[1] = janet_wrap_boolean(format);
+          args[2] = janet_stringv(v, l);
           JanetFunction *f = janet_unwrap_function(decoder);
           /* XXX should we reenable GC? */
-          jv = janet_call(f, 2, args);
+          jv = janet_call(f, 3, args);
           break;
         }
         case JANET_CFUNCTION: {
-          Janet args[2];
+          Janet args[3];
           args[0] = janet_wrap_number((double)t);
-          args[1] = janet_stringv(v, l);
+          args[1] = janet_wrap_boolean(format);
+          args[2] = janet_stringv(v, l);
           JanetCFunction f = janet_unwrap_cfunction(decoder);
-          jv = f(2, args);
+          jv = f(3, args);
           break;
         }
         default:
@@ -149,7 +151,6 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
       }
 
       Janet k = safe_cstringv(PQfname(jpqr->r, j));
-
       janet_table_put(t, k, jv);
     }
 
@@ -241,6 +242,11 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
     switch (janet_type(j)) {
     case JANET_NIL:
       break;
+    case JANET_BOOLEAN:
+      plengths[i] = 2;
+      pvals[i] = zsmalloc(2);
+      pvals[i][0] = janet_unwrap_boolean(j) ? 't' : 'f';
+      break;
     case JANET_BUFFER: {
       JanetBuffer *b = janet_unwrap_buffer(j);
       pvals[i] = janet_smalloc(b->count);
@@ -267,24 +273,33 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       break;
     }
     case JANET_ARRAY:
-    case JANET_TUPLE: {
-
+    case JANET_TUPLE:
+    raw_marshal : {
       JanetView view = janet_getindexed(&j, 0);
-      if (view.len != 2)
-        janet_panic("arrays and tuples must be an [oid, string] pair");
+      if (view.len != 3)
+        janet_panic(
+            "arrays and tuples must be an [oid is-binary string] triple");
 
-      if (janet_checktype(view.items[0], JANET_NUMBER))
+      if (!janet_checktype(view.items[0], JANET_NUMBER))
         janet_panic("oid must be a number");
 
       poids[i] = (Oid)janet_unwrap_number(view.items[0]);
 
-      if (!janet_checktype(view.items[1], JANET_STRING) &&
-          !janet_checktype(view.items[1], JANET_BUFFER))
+      if (!janet_checktype(view.items[1], JANET_BOOLEAN))
+        janet_panic("is-binary must be a boolean");
+
+      pformats[i] = (Oid)janet_unwrap_boolean(view.items[1]);
+
+      if (!janet_checktype(view.items[2], JANET_STRING) &&
+          !janet_checktype(view.items[2], JANET_BUFFER))
         janet_panic("value in oid pair must be a string or buffer");
 
-      j = view.items[1];
+      JanetByteView bytes = janet_getbytes(&view.items[2], 0);
 
-      goto try_again;
+      pvals[i] = janet_smalloc(bytes.len);
+      memcpy(pvals[i], bytes.bytes, bytes.len);
+      plengths[i] = bytes.len;
+      break;
     }
     case JANET_ABSTRACT: {
       JanetIntType intt = janet_is_int(j);
@@ -306,26 +321,19 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
         /* fall through to default */
       }
     }
-    default:
+    default: {
       /* XXX: renable janet GC for this call? how do we do that? what do we
          need to root these values? */
-      j = janet_mcall("pq/to-string", 1, &j);
-      if (!janet_checktype(j, JANET_STRING) &&
-          !janet_checktype(j, JANET_BUFFER))
-        janet_panic("method :pq/to-string did not return a string or buffer");
-
-      Janet joid = janet_mcall("pq/type-oid", 1, &j);
-      if (!janet_checktype(j, JANET_NUMBER))
-        janet_panic("method :pq/type-oid did not return a number");
-
-      poids[i] = (Oid)janet_unwrap_number(joid);
-
-      goto try_again;
+      j = janet_mcall("pq/marshal", 1, &j);
+      if (!janet_checktype(j, JANET_ARRAY) && !janet_checktype(j, JANET_TUPLE))
+        janet_panic("method :pq/marshal did not return an array or tuple");
+      goto raw_marshal;
+    }
     }
   }
 
   jpqr->r = PQexecParams(ctx->conn, q, argc, NULL, (const char *const *)pvals,
-                         plengths, NULL, 0);
+                         plengths, pformats, 0);
 
   if (!jpqr->r)
     janet_panic("query failed");
@@ -367,12 +375,12 @@ static const JanetReg cfuns[] = {
     {"result/nfields", jpq_result_nfields, NULL},
     {"result/fname", jpq_result_fname, NULL},
     {"result/fnumber", jpq_result_fnumber, NULL},
-    {"result/ntuples", jpq_result_ftype, NULL},
-    {"result/ftype", jpq_result_fformat, NULL},
-    {"result/fformat", jpq_result_status, NULL},
+    {"result/ftype", jpq_result_ftype, NULL},
+    {"result/fformat", jpq_result_fformat, NULL},
+    {"result/status", jpq_result_status, NULL},
     {"result/error-message", jpq_result_error_message, NULL},
     {"result/error-field", jpq_result_error_field, NULL},
-    {"result/unpack", jpq_result_error_field, NULL},
+    {"result/unpack", jpq_result_unpack, NULL},
 
     {NULL, NULL, NULL}};
 
