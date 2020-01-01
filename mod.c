@@ -18,6 +18,10 @@ static int result_gc(void *p, size_t s) {
 static const JanetAbstractType pq_result_type = {
     "pq.result", result_gc, NULL, NULL, NULL, NULL, NULL, NULL};
 
+static Janet safe_cstringv(char *s) {
+  s ? janet_cstringv(s) : janet_wrap_nil();
+}
+
 static Janet jpq_result_ntuples(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
@@ -37,7 +41,7 @@ static Janet jpq_result_fname(int32_t argc, Janet *argv) {
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
   int col = janet_getinteger(argv, 1);
 
-  return janet_cstringv(PQfname(jpqr->r, col));
+  return safe_cstringv(PQfname(jpqr->r, col));
 }
 
 static Janet jpq_result_fnumber(int32_t argc, Janet *argv) {
@@ -73,14 +77,14 @@ static Janet jpq_result_status(int32_t argc, Janet *argv) {
 static Janet jpq_result_error_message(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
-  return janet_cstringv(PQresultErrorMessage(jpqr->r));
+  return safe_cstringv(PQresultErrorMessage(jpqr->r));
 }
 
 static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 2);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
   int code = janet_getinteger(argv, 1);
-  return janet_cstringv(PQresultErrorField(jpqr->r, code));
+  return safe_cstringv(PQresultErrorField(jpqr->r, code));
 }
 
 typedef struct {
