@@ -1,3 +1,4 @@
+#include <alloca.h>
 #include <janet.h>
 #include <libpq-fe.h>
 
@@ -256,10 +257,31 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   argc -= 2;
   argv += 2;
 
-  Oid *poids = zsmalloc(sizeof(Oid) * argc);
-  int *plengths = zsmalloc(sizeof(int) * argc);
-  int *pformats = zsmalloc(sizeof(int) * argc);
-  char **pvals = zsmalloc(sizeof(char *) * argc);
+  Oid *poids;
+  int *plengths;
+  int *pformats;
+  char **pvals;
+
+#define NFAST_PATH 4
+  if (argc <= NFAST_PATH) {
+    int n;
+#define ZALLOCA(P, N)                                                          \
+  do {                                                                         \
+    n = N;                                                                     \
+    P = alloca(n);                                                             \
+    memset(P, 0, n);                                                           \
+  } while (0)
+    ZALLOCA(poids, sizeof(Oid) * argc);
+    ZALLOCA(plengths, sizeof(int) * argc);
+    ZALLOCA(pformats, sizeof(int) * argc);
+    ZALLOCA(pvals, sizeof(char *) * argc);
+#undef ZALLOCA
+  } else {
+    poids = zsmalloc(sizeof(Oid) * argc);
+    plengths = zsmalloc(sizeof(int) * argc);
+    pformats = zsmalloc(sizeof(int) * argc);
+    pvals = zsmalloc(sizeof(char *) * argc);
+  }
 
   for (int i = 0; i < argc; i++) {
     Janet j = argv[i];
@@ -378,10 +400,13 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   for (int i = argc - 1; i > 0; i--) {
     janet_sfree(pvals[i]);
   }
-  janet_sfree(pvals);
-  janet_sfree(pformats);
-  janet_sfree(plengths);
-  janet_sfree(poids);
+  if (argc > NFAST_PATH) {
+    janet_sfree(pvals);
+    janet_sfree(pformats);
+    janet_sfree(plengths);
+    janet_sfree(poids);
+  }
+#undef NFAST_PATH
 
   int status = PQresultStatus(jpqr->r);
 
