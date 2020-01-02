@@ -23,7 +23,7 @@ Custom type encoding/decoding:
 # directly insert custom encoding.
 (pq/exec "insert into tab(x) values($1);" [TYPEOID ISBINARY BYTES])
 
-# use a method insert custom encoding.
+# use a method for custom type encoding.
 (pq/exec "insert into tab(x) values($1);" {:pq/marshal (fn [self] [TYPEOID ISBINARY BYTES])})
 
 # Add a custom type decoder.
