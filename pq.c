@@ -110,7 +110,7 @@ static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
 }
 
 static Janet jpq_error_pred(int32_t argc, Janet *argv) {
-  janet_fixarity(argc, 2);
+  janet_fixarity(argc, 1);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
   int status = PQresultStatus(jpqr->r);
   return janet_wrap_boolean(status != PGRES_TUPLES_OK &&
@@ -242,7 +242,7 @@ static void *zsmalloc(size_t n) {
 static Janet jpq_exec(int32_t argc, Janet *argv) {
   if (argc < 2)
     janet_panic("expected at least a pq context and a query string");
-  if (argc > 10000)
+  if (argc > 10000000)
     janet_panic("too many arguments");
 
   Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
@@ -331,7 +331,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
     }
     case JANET_ARRAY:
     case JANET_TUPLE:
-    raw_marshal : {
+    raw_encode : {
       JanetView view = janet_getindexed(&j, 0);
       if (view.len != 3)
         janet_panic(
@@ -382,10 +382,10 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
     default: {
       /* XXX: renable janet GC for this call? how do we do that? what do we
          need to root these values? */
-      j = janet_mcall("pq/marshal", 1, &j);
+      j = janet_mcall("pq/encode", 1, &j);
       if (!janet_checktype(j, JANET_ARRAY) && !janet_checktype(j, JANET_TUPLE))
-        janet_panic("method :pq/marshal did not return an array or tuple");
-      goto raw_marshal;
+        janet_panic("method :pq/encode did not return an array or tuple");
+      goto raw_encode;
     }
     }
   }
@@ -408,12 +408,6 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   }
 #undef NFAST_PATH
 
-  int status = PQresultStatus(jpqr->r);
-
-  if (status != PGRES_TUPLES_OK && status != PGRES_EMPTY_QUERY &&
-      status != PGRES_COMMAND_OK)
-    janet_panicv(janet_wrap_abstract(jpqr));
-
   return janet_wrap_abstract(jpqr);
 }
 
@@ -422,6 +416,30 @@ static Janet jpq_close(int32_t argc, Janet *argv) {
   Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
   context_close(ctx);
   return janet_wrap_nil();
+}
+
+static Janet jpq_escape_literal(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 2);
+    Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+    char *input = (char*)janet_getstring(argv, 1);
+    char *output = PQescapeLiteral(ctx->conn, input, janet_string_length(input));
+    if (!output)
+      janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
+    const uint8_t* result = janet_string((uint8_t*)output, strlen(output));
+    PQfreemem(output);
+    return janet_wrap_string(result);
+}
+
+static Janet jpq_escape_identifier(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 2);
+    Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+    char *input = (char*)janet_getstring(argv, 1);
+    char *output = PQescapeIdentifier(ctx->conn, input, janet_string_length(input));
+    if (!output)
+      janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
+    const uint8_t* result = janet_string((uint8_t*)output, strlen(output));
+    PQfreemem(output);
+    return janet_wrap_string(result);
 }
 
 #define upstream_doc "See libpq documentation at https://www.postgresql.org."
@@ -437,6 +455,8 @@ static const JanetReg cfuns[] = {
     {"error?", jpq_error_pred,
      "(pq/error? result)\n\n"
      "Check if an object is a pq.result containing an error."},
+    {"escape-literal", jpq_escape_literal, upstream_doc},
+    {"escape-identifier", jpq_escape_identifier, upstream_doc},
     {"result/ntuples", jpq_result_ntuples, upstream_doc},
     {"result/nfields", jpq_result_nfields, upstream_doc},
     {"result/fname", jpq_result_fname, upstream_doc},

@@ -66,13 +66,18 @@
    If a param is an array or tuple, this must be a triple of 
    [oid:number is-binary:boolean encoded:string|buffer].\n\n
    
-   Otherwise params can have the method :pq/marshal returning an encoded triple as described."
+   Otherwise params can have the method :pq/encode returning an encoded triple as described."
   [conn query & params]
   (def result (_pq/exec conn query ;params))
-  (def status (_pq/result/status result))
+  (when (_pq/error? result)
+    (error result))
   (_pq/result/unpack result (dyn :pq/decoder-table default-decoder-table)))
 
 (def close _pq/close)
+
+(def escape-literal _pq/escape-literal)
+
+(def escape-identifier _pq/escape-identifier)
 
 (def error? _pq/error?)
 

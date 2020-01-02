@@ -75,7 +75,7 @@
   (round-trip-test {:coltype "boolean" :val false})
   (round-trip-test {:coltype "boolean" :val [16 false "t"] :expected true})
   (round-trip-test {:coltype "boolean" :val [16 false "f"] :expected false})
-  (round-trip-test {:coltype "boolean" :val {:pq/marshal (fn [&] [16 false "f"]) } :expected false})
+  (round-trip-test {:coltype "boolean" :val {:pq/encode (fn [&] [16 false "f"]) } :expected false})
   # smallint -32768 to +32767
   (round-trip-test {:coltype "smallint" :val -32768})
   (round-trip-test {:coltype "smallint" :val 32767})
@@ -118,15 +118,20 @@
   (round-trip-test {:coltype "jsonb" :val (pq/jsonb @{"hello" "json"}) :expected @{"hello" "json"}})
   
 
-  # Test slow path where we smalloc params.
+  # test slow path where we smalloc params.
   (do
-    (pq/exec conn"create table t(a text, b text, c text, d text, e text, f text, g text, h text);")
+    (pq/exec conn "create table t(a text, b text, c text, d text, e text, f text, g text, h text);")
     (pq/exec conn "insert into t(a,b,c,d,e,f,g,h) values($1,$2,$3,$4,$5,$6,$7,$8);"
                   "a" "b" "c" "d" "e" "f" "g" "h")
     (assert (deep= (pq/exec conn "select * from t;")
                    @[@{"a" "a" "b" "b" "c" "c" "d" "d" "e" "e" "f" "f" "g" "g" "h" "h"}]))
     (pq/exec conn "drop table t;"))
 
+  # escaping functions.
+  (assert (= (pq/escape-literal conn "123") "'123'"))
+  (assert (= (pq/escape-identifier conn "123") "\"123\""))
+
   ))
+
 
 (run-tests)
