@@ -10,6 +10,10 @@
        ,b
      ([,err ,fiber] (,action) (,propagate ,err ,fiber)))))
 
+(defmacro assert
+  [cond]
+  ~(unless ,cond (error "fail")))
+
 (defn cleanup []
   (each d (->>
             (sh/$$ ["find" "/tmp" "-maxdepth" "1" "-type" "d" "-name" "janet-pq-test.tmp.*"])
@@ -45,24 +49,55 @@
 (set tests (fn []
   (print "running tests...")
   (def conn (connect))
-  (pq/exec conn "create table foo (a text, b boolean);")
   
-  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t1" true)
-  (unless
-    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t1"))
-       [{"a" "t1" "b" true}])
-    (error "fail"))
-
-  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t3" {:pq/marshal (fn [&] [16 false "t"])})
-  (unless
-    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t3"))
-       [{"a" "t3" "b" true}])
-    (error "fail"))
-
-  (pq/exec conn "insert into foo(a, b) values($1, $2);" "t2" [16 false "f"])
-  (unless
-    (= (freeze (pq/exec conn "select * from foo where a = $1;" "t2"))
-       [{"a" "t2" "b" false}])
-    (error "fail"))))
+  (defn round-trip-test
+    [test-case]
+    (pq/exec conn (string "create table roundtrip (a text, b " (test-case :coltype) ");"))
+    (pq/exec conn "insert into roundtrip(a, b) values($1, $2);" "t" (test-case :val))
+    (def v ((first (pq/exec conn "select * from roundtrip where a = $1;" "t")) "b"))
+    (def expected (get test-case :expected (get test-case :val)))
+    (unless (deep= v expected)
+      (error
+        (with-dyns [:out (buffer/new 0)]
+          (print "expected:")
+          (print (type expected))
+          (pp expected)
+          (print "got:")
+          (print (type v))
+          (pp v)
+          (string (dyn :out)))))
+    (pq/exec conn "drop table roundtrip;"))
+  
+  # nil
+  (round-trip-test {:coltype "boolean"})
+  # booleans
+  (round-trip-test {:coltype "boolean" :val true})
+  (round-trip-test {:coltype "boolean" :val false})
+  (round-trip-test {:coltype "boolean" :val [16 false "t"] :expected true})
+  (round-trip-test {:coltype "boolean" :val [16 false "f"] :expected false})
+  (round-trip-test {:coltype "boolean" :val {:pq/marshal (fn [&] [16 false "f"]) } :expected false})
+  # text
+  (round-trip-test {:coltype "text" :val "hello"})
+  (round-trip-test {:coltype "text" :val "😀😀😀"})
+  # smallint -32768 to +32767
+  (round-trip-test {:coltype "smallint" :val -32768})
+  (round-trip-test {:coltype "smallint" :val 32767})
+  (round-trip-test {:coltype "smallint" :val 0})
+  # integer -2147483648 to +2147483647
+  (round-trip-test {:coltype "integer" :val -2147483648})
+  (round-trip-test {:coltype "integer" :val 2147483647})
+  (round-trip-test {:coltype "integer" :val 0})
+  # bigint    -9223372036854775808 to +9223372036854775807
+  #(round-trip-test {:coltype "bigint" :val (int/s64 "-9223372036854775808")})
+  #(round-trip-test {:coltype "bigint" :val (int/s64 "9223372036854775807")})
+  # smallserial  1 to 32767
+  (round-trip-test {:coltype "smallserial" :val 1})
+  (round-trip-test {:coltype "smallserial" :val 32767})
+  # serial 1 to 2147483647
+  (round-trip-test {:coltype "serial" :val 1}) 
+  (round-trip-test {:coltype "serial" :val 2147483647})
+  # bigserial 1 to 9223372036854775807
+  (round-trip-test {:coltype "bigserial" :val (int/s64 "1")})
+  (round-trip-test {:coltype "bigserial" :val (int/s64 "9223372036854775807")})))
 
 (run-tests)

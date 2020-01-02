@@ -297,9 +297,15 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
     }
     case JANET_NUMBER: {
       double d = janet_unwrap_number(j);
-      size_t l = snprintf(NULL, 0, "%f", d);
+      /* The exact range could be increased to ~52 bits afaik, for now 32 bits
+       * only. */
+      const char *fmt = (d == floor(d) && d <= ((double)INT32_MAX) &&
+                         d >= ((double)INT32_MIN))
+                            ? "%.0f"
+                            : "%g";
+      size_t l = snprintf(NULL, 0, fmt, d);
       pvals[i] = janet_smalloc(l + 1);
-      snprintf(pvals[i], l + 1, "%f", d);
+      snprintf(pvals[i], l + 1, fmt, d);
       plengths[i] = l;
       break;
     }
@@ -383,7 +389,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
 
   if (status != PGRES_TUPLES_OK && status != PGRES_EMPTY_QUERY &&
       status != PGRES_COMMAND_OK)
-    janet_panicv(argv[0]);
+    janet_panicv(janet_wrap_abstract(jpqr));
 
   return janet_wrap_abstract(jpqr);
 }
@@ -406,8 +412,8 @@ static const JanetReg cfuns[] = {
      "(pq/close ctx)\n\n"
      "Close a pq context."},
     {"error?", jpq_error_pred,
-    "(pq/error? result)\n\n"
-    "Check if an object is a pq.result containing an error."},
+     "(pq/error? result)\n\n"
+     "Check if an object is a pq.result containing an error."},
     {"result/ntuples", jpq_result_ntuples, upstream_doc},
     {"result/nfields", jpq_result_nfields, upstream_doc},
     {"result/fname", jpq_result_fname, upstream_doc},

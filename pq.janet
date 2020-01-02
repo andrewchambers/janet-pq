@@ -4,6 +4,14 @@
   [oid s]
   (= s "t"))
 
+(defn decode-number
+  [oid s]
+  (scan-number s))
+
+(defn decode-s64
+  [oid s]
+  (int/s64 s))
+
 (defn decode-string
   [oid s]
   s)
@@ -12,6 +20,9 @@
   @{
     16 decode-bool
     17 decode-string
+    20 decode-s64
+    21 decode-number
+    23 decode-number
     25 decode-string
   })
 
