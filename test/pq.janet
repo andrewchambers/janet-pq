@@ -27,7 +27,7 @@
 (var pg-data-dir nil)
 
 (defn connect []
-  (pq/connect (string "postgresql://localhost?dbname=postgres")))
+  (pq/connect "postgresql://localhost?dbname=postgres"))
 
 (var tests nil)
 
