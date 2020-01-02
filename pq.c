@@ -157,20 +157,18 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
 
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
-          Janet args[2];
-          args[0] = janet_wrap_number((double)t);
-          args[1] = janet_stringv(v, l);
+          Janet args[1];
+          args[0] = janet_stringv(v, l);
           JanetFunction *f = janet_unwrap_function(decoder);
           /* XXX should we reenable GC? */
-          jv = janet_call(f, 2, args);
+          jv = janet_call(f, 1, args);
           break;
         }
         case JANET_CFUNCTION: {
-          Janet args[2];
-          args[0] = janet_wrap_number((double)t);
-          args[1] = janet_stringv(v, l);
+          Janet args[1];
+          args[0] = janet_stringv(v, l);
           JanetCFunction f = janet_unwrap_cfunction(decoder);
-          jv = f(2, args);
+          jv = f(1, args);
           break;
         }
         default:

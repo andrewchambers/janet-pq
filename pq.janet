@@ -1,13 +1,13 @@
 (import _pq)
 (import json)
 
-/* PQresultStatus */
+# PQresultStatus
 (def PGRES_EMPTY_QUERY _pq/PGRES_EMPTY_QUERY)
 (def PGRES_COMMAND_OK _pq/PGRES_COMMAND_OK)
 (def PGRES_TUPLES_OK _pq/PGRES_TUPLES_OK)
 (def PGRES_BAD_RESPONSE _pq/PGRES_BAD_RESPONSE)
 (def PGRES_FATAL_ERROR _pq/PGRES_FATAL_ERROR)
-/* PQresultErrorField */
+# PQresultErrorField
 (def PG_DIAG_SEVERITY _pq/PG_DIAG_SEVERITY)
 (def PG_DIAG_SQLSTATE _pq/PG_DIAG_SQLSTATE)
 (def PG_DIAG_MESSAGE_PRIMARY _pq/PG_DIAG_MESSAGE_PRIMARY)
@@ -26,40 +26,21 @@
 (def PG_DIAG_SOURCE_LINE _pq/PG_DIAG_SOURCE_LINE)
 (def PG_DIAG_SOURCE_FUNCTION _pq/PG_DIAG_SOURCE_FUNCTION)
 
-(defn decode-bool
-  [oid s]
-  (= s "t"))
-
-(defn decode-number
-  [oid s]
-  (scan-number s))
-
-(defn decode-s64
-  [oid s]
-  (int/s64 s))
-
-(defn decode-string
-  [oid s]
-  s)
-
-(defn decode-json
-  [oid s]
-  (json/decode s))
 
 (def default-decoder-table
   @{
-    16 decode-bool
-    17 decode-string
-    20 decode-s64
-    21 decode-number
-    23 decode-number
-    25 decode-string
-    114 decode-json
-    700 decode-number
-    701 decode-number
-    1042 decode-string
-    1043 decode-string
-    3802 decode-json
+    16 |(= $0 "t")
+    17 identity
+    20 int/s64
+    21 scan-number
+    23 scan-number
+    25 identity
+    114 json/decode
+    700 scan-number
+    701 scan-number
+    1042 identity
+    1043 identity
+    3802 json/decode
   })
 
 (defn json
