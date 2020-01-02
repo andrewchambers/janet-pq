@@ -1,4 +1,5 @@
 (import _pq)
+(import json)
 
 (defn decode-bool
   [oid s]
@@ -16,6 +17,10 @@
   [oid s]
   s)
 
+(defn decode-json
+  [oid s]
+  (json/decode s))
+
 (def default-decoder-table
   @{
     16 decode-bool
@@ -24,7 +29,21 @@
     21 decode-number
     23 decode-number
     25 decode-string
+    114 decode-json
+    700 decode-number
+    701 decode-number
+    1042 decode-string
+    1043 decode-string
+    3802 decode-json
   })
+
+(defn json
+  [v]
+  [114 false (json/encode v)])
+
+(defn jsonb
+  [v]
+  [3802 false (json/encode v)])
 
 (def connect _pq/connect)
 

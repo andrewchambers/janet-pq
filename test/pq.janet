@@ -76,9 +76,6 @@
   (round-trip-test {:coltype "boolean" :val [16 false "t"] :expected true})
   (round-trip-test {:coltype "boolean" :val [16 false "f"] :expected false})
   (round-trip-test {:coltype "boolean" :val {:pq/marshal (fn [&] [16 false "f"]) } :expected false})
-  # text
-  (round-trip-test {:coltype "text" :val "hello"})
-  (round-trip-test {:coltype "text" :val "😀😀😀"})
   # smallint -32768 to +32767
   (round-trip-test {:coltype "smallint" :val -32768})
   (round-trip-test {:coltype "smallint" :val 32767})
@@ -98,6 +95,27 @@
   (round-trip-test {:coltype "serial" :val 2147483647})
   # bigserial 1 to 9223372036854775807
   (round-trip-test {:coltype "bigserial" :val (int/s64 "1")})
-  (round-trip-test {:coltype "bigserial" :val (int/s64 "9223372036854775807")})))
+  (round-trip-test {:coltype "bigserial" :val (int/s64 "9223372036854775807")})
+  # real
+  (round-trip-test {:coltype "real" :val 1})
+  (round-trip-test {:coltype "real" :val -1})
+  (round-trip-test {:coltype "real" :val 1.123})
+  # double precision
+  (round-trip-test {:coltype "double precision" :val 1})
+  (round-trip-test {:coltype "double precision" :val -1})
+  (round-trip-test {:coltype "double precision" :val 1.123})
+  # text
+  (round-trip-test {:coltype "text" :val "hello"})
+  (round-trip-test {:coltype "text" :val "😀😀😀"})
+  # varchar
+  (round-trip-test {:coltype "varchar(128)" :val "hello"})
+  (round-trip-test {:coltype "varchar(128)" :val "😀😀😀"})
+  # char(n)
+  (round-trip-test {:coltype "char(8)" :val "hello" :expected "hello   "})
+  # json
+  (round-trip-test {:coltype "json" :val (pq/json @{"hello" "json"}) :expected @{"hello" "json"}})
+  # jsonb
+  (round-trip-test {:coltype "jsonb" :val (pq/jsonb @{"hello" "json"}) :expected @{"hello" "json"}})
+  ))
 
 (run-tests)
