@@ -210,7 +210,7 @@ static int context_gc(void *p, size_t s) {
 static Janet jpq_close(int32_t argc, Janet *argv);
 
 static JanetMethod context_methods[] = {
-    {"close", jpq_close}, /* So contextes can be used with 'with' */
+    {"close", jpq_close}, /* So contexts can be used with 'with' */
     {NULL, NULL}};
 
 static int context_get(void *ptr, Janet key, Janet *out) {

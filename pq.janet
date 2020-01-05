@@ -73,6 +73,14 @@
     (error result))
   (_pq/result/unpack result (dyn :pq/decoder-table default-decoder-table)))
 
+(defn one
+  "Run a query like exec, returning the first result"
+  [conn query & params]
+  (def r (exec conn query ;params))
+  (if (zero? (length r))
+    nil
+    (first r)))
+
 (def close _pq/close)
 
 (def escape-literal _pq/escape-literal)

@@ -131,6 +131,14 @@
   (assert (= (pq/escape-literal conn "123") "'123'"))
   (assert (= (pq/escape-identifier conn "123") "\"123\""))
 
+  (do
+    (pq/exec conn "create table t(a text);")
+    (pq/exec conn "insert into t(a) values($1);" "a")
+    (assert (deep= (pq/one conn "select * from t limit 1;")
+                   @{"a" "a"}))
+    (assert (nil? (pq/one conn "select * from t where a = 'b';")))
+    (pq/exec conn "drop table t;"))
+
   # Test various ways of closing.
   (do
     (def conn1 (connect))
