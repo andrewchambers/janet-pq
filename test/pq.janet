@@ -131,6 +131,16 @@
   (assert (= (pq/escape-literal conn "123") "'123'"))
   (assert (= (pq/escape-identifier conn "123") "\"123\""))
 
+  # Test various ways of closing.
+  (do
+    (def conn1 (connect))
+    (def conn2 (connect))
+    (var conn3 (connect))
+    (pq/close conn1)
+    (:close conn2)
+    (set conn3 nil)
+    (gccollect))
+
   ))
 
 

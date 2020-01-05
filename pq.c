@@ -207,8 +207,19 @@ static int context_gc(void *p, size_t s) {
   return 0;
 }
 
+static Janet jpq_close(int32_t argc, Janet *argv);
+
+static JanetMethod context_methods[] = {
+    {"close", jpq_close}, /* So contextes can be used with 'with' */
+    {NULL, NULL}};
+
+static int context_get(void *ptr, Janet key, Janet *out) {
+  Context *p = (Context *)ptr;
+  return janet_getmethod(janet_unwrap_keyword(key), context_methods, out);
+}
+
 static const JanetAbstractType pq_context_type = {
-    "pq.context", context_gc, NULL, NULL, NULL, NULL, NULL, NULL};
+    "pq.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL};
 
 static Janet jpq_connect(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
@@ -419,27 +430,28 @@ static Janet jpq_close(int32_t argc, Janet *argv) {
 }
 
 static Janet jpq_escape_literal(int32_t argc, Janet *argv) {
-    janet_fixarity(argc, 2);
-    Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
-    char *input = (char*)janet_getstring(argv, 1);
-    char *output = PQescapeLiteral(ctx->conn, input, janet_string_length(input));
-    if (!output)
-      janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
-    const uint8_t* result = janet_string((uint8_t*)output, strlen(output));
-    PQfreemem(output);
-    return janet_wrap_string(result);
+  janet_fixarity(argc, 2);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  char *input = (char *)janet_getstring(argv, 1);
+  char *output = PQescapeLiteral(ctx->conn, input, janet_string_length(input));
+  if (!output)
+    janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
+  const uint8_t *result = janet_string((uint8_t *)output, strlen(output));
+  PQfreemem(output);
+  return janet_wrap_string(result);
 }
 
 static Janet jpq_escape_identifier(int32_t argc, Janet *argv) {
-    janet_fixarity(argc, 2);
-    Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
-    char *input = (char*)janet_getstring(argv, 1);
-    char *output = PQescapeIdentifier(ctx->conn, input, janet_string_length(input));
-    if (!output)
-      janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
-    const uint8_t* result = janet_string((uint8_t*)output, strlen(output));
-    PQfreemem(output);
-    return janet_wrap_string(result);
+  janet_fixarity(argc, 2);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  char *input = (char *)janet_getstring(argv, 1);
+  char *output =
+      PQescapeIdentifier(ctx->conn, input, janet_string_length(input));
+  if (!output)
+    janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
+  const uint8_t *result = janet_string((uint8_t *)output, strlen(output));
+  PQfreemem(output);
+  return janet_wrap_string(result);
 }
 
 #define upstream_doc "See libpq documentation at https://www.postgresql.org."
