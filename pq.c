@@ -219,7 +219,7 @@ static int context_get(void *ptr, Janet key, Janet *out) {
 }
 
 static const JanetAbstractType pq_context_type = {
-    "pq.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL};
+    "pq.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL, NULL, NULL};
 
 static Janet jpq_connect(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
