@@ -59,7 +59,7 @@
    Returned rows are decoded by default-decoder-table or the dynamic table :pq/decoder-table.\n\n
    
    If the result is an error, it is thrown, use error? to check if a thrown error is a pq error,
-   which can be inspected with the result/* functions.\n\n
+   which can be inspected with the result-* functions.\n\n
 
    Params can be nil|boolean|string|buffer|number|u64|s64|array|tuple.\n\n
 
@@ -71,7 +71,7 @@
   (def result (_pq/exec conn query ;params))
   (when (_pq/error? result)
     (error result))
-  (_pq/result/unpack result (dyn :pq/decoder-table default-decoder-table)))
+  (_pq/result-unpack result (dyn :pq/decoder-table default-decoder-table)))
 
 (defn one
   "Run a query like exec, returning the first result"
@@ -89,22 +89,22 @@
 
 (def error? _pq/error?)
 
-(def result/ntuples _pq/result/ntuples)
+(def result-ntuples _pq/result-ntuples)
 
-(def result/nfields _pq/result/nfields)
+(def result-nfields _pq/result-nfields)
 
-(def result/fname _pq/result/fname)
+(def result-fname _pq/result-fname)
 
-(def result/fnumber _pq/result/fnumber)
+(def result-fnumber _pq/result-fnumber)
 
-(def result/ftype _pq/result/ftype)
+(def result-ftype _pq/result-ftype)
 
-(def result/fformat _pq/result/fformat)
+(def result-fformat _pq/result-fformat)
 
-(def result/status _pq/result/status)
+(def result-status _pq/result-status)
 
-(def result/error-message _pq/result/error-message)
+(def result-error-message _pq/result-error-message)
 
-(def result/error-field _pq/result/error-field)
+(def result-error-field _pq/result-error-field)
 
-(def result/unpack _pq/result/unpack)
+(def result-unpack _pq/result-unpack)
