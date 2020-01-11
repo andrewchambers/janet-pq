@@ -139,6 +139,9 @@
     (assert (nil? (pq/one conn "select * from t where a = 'b';")))
     (pq/exec conn "drop table t;"))
 
+  # Sanitiy test that crashed on macos in the wild.
+  (assert (= 1 (in (first (pairs (pq/one conn "select 1::integer"))) 1)))
+
   # Test various ways of closing.
   (do
     (def conn1 (connect))
