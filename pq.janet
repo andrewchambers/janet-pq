@@ -27,7 +27,7 @@
 (def PG_DIAG_SOURCE_FUNCTION _pq/PG_DIAG_SOURCE_FUNCTION)
 
 
-(def default-decoder-table
+(def *decoders*
   @{
     16 |(= $0 "t")
     17 identity
@@ -56,7 +56,7 @@
 (defn exec
   "Run a query against conn.\n\n
    
-   Returned rows are decoded by default-decoder-table or the dynamic table :pq/decoder-table.\n\n
+   Returned rows are decoded by default-decoder-table or the table *decoders*.\n\n
    
    If the result is an error, it is thrown, use error? to check if a thrown error is a pq error,
    which can be inspected with the result-* functions.\n\n
@@ -71,7 +71,7 @@
   (def result (_pq/exec conn query ;params))
   (when (_pq/error? result)
     (error result))
-  (_pq/result-unpack result (dyn :pq/decoder-table default-decoder-table)))
+  (_pq/result-unpack result *decoders*))
 
 (defn one
   "Run a query like exec, returning the first result"
