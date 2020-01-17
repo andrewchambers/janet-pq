@@ -27,12 +27,8 @@ Custom type encoding/decoding:
 (pq/exec conn "insert into tab(x) values($1);" {:pq/marshal (fn [self] [TYPEOID ISBINARY BYTES])})
 
 # Add a custom type decoder.
-(put pg/default-decoder-table TYPEOID custom-decoder)
+(put pg/*decoders* TYPEOID custom-decoder)
 (pq/exec conn "select * from tab;")
-
-# Dynamic decoder table
-(with-dyns [:pq/decoder-table t]
-  ...)
 
 ```
 
@@ -45,5 +41,5 @@ Error handling:
 (try
   ...
   ([err] (when (pq/error? err)
-    (def msg (pq/result/error-field err ...)))))
+    (def msg (pq/result-error-field err ...)))))
 ```

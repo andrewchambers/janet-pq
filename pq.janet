@@ -56,7 +56,8 @@
 (defn exec
   "Run a query against conn.\n\n
    
-   Returned rows are decoded by default-decoder-table or the table *decoders*.\n\n
+   Returned rows are decoded by matching the returned oid by to the
+   corresponding decoder function in the table *decoders*.\n\n
    
    If the result is an error, it is thrown, use error? to check if a thrown error is a pq error,
    which can be inspected with the result-* functions.\n\n
