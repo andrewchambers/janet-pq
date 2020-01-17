@@ -154,7 +154,7 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
 
         Janet decoder = janet_table_get(decode_tab, janet_wrap_integer(t));
         if (janet_checktype(decoder, JANET_NIL))
-          janet_panicf("no decoder entry for oid '%d'", t);
+          janet_panicf("no decoder entry for returned row item with oid - %d", t);
 
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
