@@ -31,6 +31,7 @@
   @{
     16 |(= $0 "t")
     17 identity
+    19 keyword
     20 int/s64
     21 scan-number
     23 scan-number
@@ -53,14 +54,12 @@
 
 (def connect _pq/connect)
 
+(def raw-exec _pq/exec)
+
 (defn exec
-  "Run a query against conn.\n\n
+  "Execute a query against conn.\n\n
    
-   Returned rows are decoded by matching the returned oid by to the
-   corresponding decoder function in the table *decoders*.\n\n
-   
-   If the result is an error, it is thrown, use error? to check if a thrown error is a pq error,
-   which can be inspected with the result-* functions.\n\n
+   If the result is an error, it is thrown, use error? to check if a thrown error is a pq error, which can be inspected with the result-* functions.\n\n
 
    Params can be nil|boolean|string|buffer|number|u64|s64|array|tuple.\n\n
 
@@ -72,15 +71,37 @@
   (def result (_pq/exec conn query ;params))
   (when (_pq/error? result)
     (error result))
+  result)
+
+(defn all
+  "Return all results from a query.\n\n
+   
+   Like exec, with the addition that returned rows are
+   decoded by matching the returned oid by to the
+   corresponding decoder function in the table *decoders*.\n\n
+  "
+  [conn query & params]
+  (def result (_pq/exec conn query ;params))
+  (when (_pq/error? result)
+    (error result))
   (_pq/result-unpack result *decoders*))
 
-(defn one
+(defn row
   "Run a query like exec, returning the first result"
   [conn query & params]
-  (def r (exec conn query ;params))
-  (if (zero? (length r))
+  (def rows (all conn query ;params))
+  (if (empty? rows)
     nil
-    (first r)))
+    (first rows)))
+
+(defn col [conn query & params]
+  (map |(first (values $)) (all conn query ;params)))
+
+(defn val [conn query & params]
+  (if-let [r (row conn query ;params)
+           v (values r)]
+    (when (not (empty? v))
+      (first v))))
 
 (def close _pq/close)
 

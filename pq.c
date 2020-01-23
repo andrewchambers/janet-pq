@@ -37,7 +37,7 @@ static void result_to_string(void *p, JanetBuffer *buffer) {
 }
 
 static const JanetAbstractType pq_result_type = {
-    "pq.result", result_gc,        NULL, NULL, NULL, NULL,
+    "pq/result", result_gc,        NULL, NULL, NULL, NULL,
     NULL,        result_to_string, NULL};
 
 static Janet safe_cstringv(char *s) {
@@ -154,7 +154,8 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
 
         Janet decoder = janet_table_get(decode_tab, janet_wrap_integer(t));
         if (janet_checktype(decoder, JANET_NIL))
-          janet_panicf("no decoder entry for returned row item with oid - %d", t);
+          janet_panicf("no decoder entry for returned row item with oid - %d",
+                       t);
 
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
@@ -219,7 +220,8 @@ static int context_get(void *ptr, Janet key, Janet *out) {
 }
 
 static const JanetAbstractType pq_context_type = {
-    "pq.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL, NULL, NULL};
+    "pq/context", context_gc, NULL, context_get, NULL,
+    NULL,         NULL,       NULL, NULL,        NULL};
 
 static Janet jpq_connect(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
@@ -419,6 +421,20 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   }
 #undef NFAST_PATH
 
+  if (PQresultStatus(jpqr->r) == PGRES_TUPLES_OK) {
+    size_t pressure = 0;
+    int n = PQntuples(jpqr->r);
+    int ncols = PQnfields(jpqr->r);
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < ncols; j++) {
+        if (!PQgetisnull(jpqr->r, i, j)) {
+          pressure += PQgetlength(jpqr->r, i, j);
+        }
+      }
+    }
+    janet_gcpressure(pressure);
+  }
+
   return janet_wrap_abstract(jpqr);
 }
 
@@ -484,6 +500,8 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env) {
 
   janet_cfuns(env, "pq", cfuns);
+  janet_register_abstract_type(&pq_context_type);
+  janet_register_abstract_type(&pq_result_type);
 
 #define DEF_CONSTANT_INT(X) janet_def(env, #X, janet_wrap_integer(X), NULL)
 

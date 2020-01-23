@@ -43,3 +43,7 @@ Error handling:
   ([err] (when (pq/error? err)
     (def msg (pq/result-error-field err ...)))))
 ```
+
+# Special thanks
+
+[Jon Staab](https://github.com/staab) - The author of the first janet postgres library from which this was inspired, and a core contributor to this library.

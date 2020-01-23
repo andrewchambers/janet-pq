@@ -2,17 +2,6 @@
 (import process)
 (import pq)
 
-(defmacro with-unconditional
-  [action body]
-  (def b (tuple 'do body (tuple action)))
-  (with-syms [err fiber]
-    ~(try
-       ,b
-     ([,err ,fiber] (,action) (,propagate ,err ,fiber)))))
-
-(defmacro assert
-  [cond]
-  ~(unless ,cond (error "fail")))
 
 (defn cleanup []
   (each d (->>
@@ -43,7 +32,7 @@
   (sh/$ ["pg_ctl" "-s" "-D" pg-data-dir "initdb" "-o" "--auth=trust"])
   (sh/$ ["pg_ctl" "-s" "-w" "-D" pg-data-dir  "start" "-l" (string pg-data-dir "/test-log-file.txt")])
 
-  (with-unconditional cleanup
+  (defer (cleanup)
       (tests)))
 
 (set tests (fn []
@@ -54,7 +43,7 @@
     [test-case]
     (pq/exec conn (string "create table roundtrip (a text, b " (test-case :coltype) ");"))
     (pq/exec conn "insert into roundtrip(a, b) values($1, $2);" "t" (test-case :val))
-    (def v ((first (pq/exec conn "select * from roundtrip where a = $1;" "t")) "b"))
+    (def v (pq/val conn "select b from roundtrip where a = $1;" "t"))
     (def expected (get test-case :expected (get test-case :val)))
     (unless (deep= v expected)
       (error
@@ -123,7 +112,7 @@
     (pq/exec conn "create table t(a text, b text, c text, d text, e text, f text, g text, h text);")
     (pq/exec conn "insert into t(a,b,c,d,e,f,g,h) values($1,$2,$3,$4,$5,$6,$7,$8);"
                   "a" "b" "c" "d" "e" "f" "g" "h")
-    (assert (deep= (pq/exec conn "select * from t;")
+    (assert (deep= (pq/all conn "select * from t;")
                    @[@{"a" "a" "b" "b" "c" "c" "d" "d" "e" "e" "f" "f" "g" "g" "h" "h"}]))
     (pq/exec conn "drop table t;"))
 
@@ -134,13 +123,10 @@
   (do
     (pq/exec conn "create table t(a text);")
     (pq/exec conn "insert into t(a) values($1);" "a")
-    (assert (deep= (pq/one conn "select * from t limit 1;")
+    (assert (deep= (pq/row conn "select * from t limit 1;")
                    @{"a" "a"}))
-    (assert (nil? (pq/one conn "select * from t where a = 'b';")))
+    (assert (nil? (pq/row conn "select * from t where a = 'b';")))
     (pq/exec conn "drop table t;"))
-
-  # Sanitiy test that crashed on macos in the wild.
-  (assert (= 1 (in (first (pairs (pq/one conn "select 1::integer"))) 1)))
 
   # Test various ways of closing.
   (do
