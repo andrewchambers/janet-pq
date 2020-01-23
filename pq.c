@@ -1,4 +1,5 @@
 #include <alloca.h>
+#include <inttypes.h>
 #include <janet.h>
 #include <libpq-fe.h>
 
@@ -160,7 +161,7 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
         switch (janet_type(decoder)) {
         case JANET_FUNCTION: {
           Janet args[1];
-          args[0] = janet_stringv((uint8_t*)v, l);
+          args[0] = janet_stringv((uint8_t *)v, l);
           JanetFunction *f = janet_unwrap_function(decoder);
           /* XXX should we reenable GC? */
           jv = janet_call(f, 1, args);
@@ -168,7 +169,7 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
         }
         case JANET_CFUNCTION: {
           Janet args[1];
-          args[0] = janet_stringv((uint8_t*)v, l);
+          args[0] = janet_stringv((uint8_t *)v, l);
           JanetCFunction f = janet_unwrap_cfunction(decoder);
           jv = f(1, args);
           break;
@@ -320,7 +321,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       break;
     }
     case JANET_STRING: {
-      const char *s = (char*)janet_unwrap_string(j);
+      const char *s = (char *)janet_unwrap_string(j);
       size_t l = janet_string_length(s);
       pvals[i] = janet_smalloc(l);
       memcpy(pvals[i], s, l);
@@ -376,16 +377,16 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       JanetIntType intt = janet_is_int(j);
       if (intt == JANET_INT_S64) {
         int64_t v = janet_unwrap_s64(j);
-        size_t l = snprintf(NULL, 0, "%lld", v);
+        size_t l = snprintf(NULL, 0, "%" PRId64, v);
         pvals[i] = janet_smalloc(l + 1);
-        snprintf(pvals[i], l + 1, "%lld", v);
+        snprintf(pvals[i], l + 1, "%" PRId64, v);
         plengths[i] = l;
         break;
       } else if (intt == JANET_INT_U64) {
         uint64_t v = janet_unwrap_u64(j);
-        size_t l = snprintf(NULL, 0, "%llu", v);
+        size_t l = snprintf(NULL, 0, "%" PRIu64, v);
         pvals[i] = janet_smalloc(l + 1);
-        snprintf(pvals[i], l + 1, "%llu", v);
+        snprintf(pvals[i], l + 1, "%" PRIu64, v);
         plengths[i] = l;
         break;
       } else {
