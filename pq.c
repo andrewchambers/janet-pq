@@ -45,6 +45,10 @@ static Janet safe_cstringv(char *s) {
   return s ? janet_cstringv(s) : janet_wrap_nil();
 }
 
+static Janet safe_ckeywordv(char *s) {
+  return s ? janet_ckeywordv(s) : janet_wrap_nil();
+}
+
 static Janet jpq_result_ntuples(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
@@ -181,7 +185,7 @@ static Janet jpq_result_unpack(int32_t argc, Janet *argv) {
         }
       }
 
-      Janet k = safe_cstringv(PQfname(jpqr->r, j));
+      Janet k = safe_ckeywordv(PQfname(jpqr->r, j));
       janet_table_put(t, k, jv);
     }
 

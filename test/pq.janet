@@ -113,7 +113,7 @@
     (pq/exec conn "insert into t(a,b,c,d,e,f,g,h) values($1,$2,$3,$4,$5,$6,$7,$8);"
                   "a" "b" "c" "d" "e" "f" "g" "h")
     (assert (deep= (pq/all conn "select * from t;")
-                   @[@{"a" "a" "b" "b" "c" "c" "d" "d" "e" "e" "f" "f" "g" "g" "h" "h"}]))
+                   @[@{:a "a" :b "b" :c "c" :d "d" :e "e" :f "f" :g "g" :h "h"}]))
     (pq/exec conn "drop table t;"))
 
   # escaping functions.
@@ -124,7 +124,7 @@
     (pq/exec conn "create table t(a text);")
     (pq/exec conn "insert into t(a) values($1);" "a")
     (assert (deep= (pq/row conn "select * from t limit 1;")
-                   @{"a" "a"}))
+                   @{:a "a"}))
     (assert (nil? (pq/row conn "select * from t where a = 'b';")))
     (pq/exec conn "drop table t;"))
 
