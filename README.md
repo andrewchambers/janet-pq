@@ -10,7 +10,7 @@ Basic usage:
 (def conn (pq/connect "postgresql://localhost?dbname=postgres"))
 (pq/exec conn "create table users(name text, data jsonb);")
 (pq/exec conn "insert into users(name, data) values($1, $2);" "ac" (pq/jsonb @{"some" "data"}))
-(pq/exec conn "select * from users where name = $1;" "ac")
+(pq/all conn "select * from users where name = $1;" "ac")
 [{"name" "ac" "data" @{"some" "data"}}]
 ```
 
@@ -28,7 +28,7 @@ Custom type encoding/decoding:
 
 # Add a custom type decoder.
 (put pg/*decoders* TYPEOID custom-decoder)
-(pq/exec conn "select * from tab;")
+(pq/all conn "select * from tab;")
 
 ```
 
