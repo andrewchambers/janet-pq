@@ -1,6 +1,9 @@
 (import _pq)
 (import json)
 
+#PQStatus
+(def CONNECTION_OK _pq/CONNECTION_OK)
+(def CONNECTION_BAD _pq/CONNECTION_BAD)
 # PQresultStatus
 (def PGRES_EMPTY_QUERY _pq/PGRES_EMPTY_QUERY)
 (def PGRES_COMMAND_OK _pq/PGRES_COMMAND_OK)
@@ -94,14 +97,21 @@
     nil
     (first rows)))
 
-(defn col [conn query & params]
+(defn col
+  "Run a query that returns a single column with many rows
+   and return an array with all columns unpacked"
+  [conn query & params]
   (map |(first (values $)) (all conn query ;params)))
 
-(defn val [conn query & params]
+(defn val
+  "Run a query returning a single value and return that value or nil."
+  [conn query & params]
   (if-let [r (row conn query ;params)
            v (values r)]
     (when (not (empty? v))
       (first v))))
+
+(def status _pq/status)
 
 (def close _pq/close)
 
@@ -130,3 +140,76 @@
 (def result-error-field _pq/result-error-field)
 
 (def result-unpack _pq/result-unpack)
+
+
+# The rollback sentinal is set to the prototype table of a rollback object.
+(def- rollback-sentinal @{})
+
+(defn rollback
+  "
+    Non local return to the outer pq transaction.
+  "
+  [&opt v]
+  (def e @{:v v})
+  (table/setproto e rollback-sentinal)
+  (error e))
+
+(defn- rollback?
+  [t]
+  (and (table? t)
+       (= (table/getproto t) rollback-sentinal)))
+
+(defn txn*
+  "function form of txn"
+  [conn options ftx]
+  (def retry (get options :retry false))
+  (def mode (get options :mode ""))
+  (try
+    (do
+      (exec conn (string "begin " mode ";"))
+      (def v (ftx))
+      (exec conn "commit;")
+      v)
+    ([err f]
+      (when (= (status conn) CONNECTION_BAD)
+        (propagate err f))
+      (exec conn "rollback;")
+      (cond
+        (rollback? err)
+          (err :v)
+        (and
+          retry
+          (error? err)
+          (= (result-error-field err PG_DIAG_SQLSTATE) "40001"))
+          (txn* conn options ftx)
+        (propagate err f)))))
+
+(defmacro txn
+  `
+    Run body in an sql transaction with options.
+
+    Valid option table entries are:
+
+    :retry (default false)
+    :mode (default "") Query fragment used to begin the transaction.
+
+    The transaction is rolled back when:
+
+    - An error is raised.
+    - If pq/rollback is called.
+
+    The transaction is retried if
+
+    - The an error is raised and the error is a serializability error (\"40001\").
+
+    Returns the last form or the value of any inner calls to rollback.
+
+    Examples:
+
+      (pq/txn conn {:mode "ISOLATION LEVEL SERIALIZABLE" :retry true} ...)
+      (pq/txn conn (pq/rollback :foo))
+  `
+  [conn options & body]
+  ~(,txn* ,conn ,options (fn [] ,(tuple 'do ;body))))
+
+

@@ -443,6 +443,13 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
   return janet_wrap_abstract(jpqr);
 }
 
+static Janet jpq_status(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 1);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  __ensure_ctx_ok(ctx);
+  return janet_wrap_integer(PQstatus(ctx->conn));
+}
+
 static Janet jpq_close(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
@@ -485,6 +492,9 @@ static const JanetReg cfuns[] = {
     {"close", jpq_close,
      "(pq/close ctx)\n\n"
      "Close a pq context."},
+    {"status", jpq_status,
+     "(pq/status ctx)\n\n"
+     "Close a pq context."},
     {"error?", jpq_error_pred,
      "(pq/error? result)\n\n"
      "Check if an object is a pq.result containing an error."},
@@ -509,6 +519,10 @@ JANET_MODULE_ENTRY(JanetTable *env) {
   janet_register_abstract_type(&pq_result_type);
 
 #define DEF_CONSTANT_INT(X) janet_def(env, #X, janet_wrap_integer(X), NULL)
+
+  /* PQStatus */
+  DEF_CONSTANT_INT(CONNECTION_OK);
+  DEF_CONSTANT_INT(CONNECTION_BAD);
 
   /* PQresultStatus */
   DEF_CONSTANT_INT(PGRES_EMPTY_QUERY);
