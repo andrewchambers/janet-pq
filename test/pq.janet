@@ -140,10 +140,12 @@
   
   # Test txn macro
 
+  (assert (not (pq/in-transaction? conn)))
   (assert 
     (=
       0
       (pq/txn conn {}
+        (assert (pq/in-transaction? conn))
         (pq/exec conn "create table t(a text);")
         (pq/val conn "select count(*)::float from t;"))))
 
@@ -154,8 +156,8 @@
         (def v (pq/val conn "select count(*)::float from t;"))
         (pq/rollback 7)
         v)))
+  (assert (not (pq/in-transaction? conn)))
 
   ))
-
 
 (run-tests)

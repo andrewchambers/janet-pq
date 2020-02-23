@@ -4,6 +4,11 @@
 #PQStatus
 (def CONNECTION_OK _pq/CONNECTION_OK)
 (def CONNECTION_BAD _pq/CONNECTION_BAD)
+#PQtransactionStatus
+(def PQTRANS_IDLE _pq/PQTRANS_IDLE)
+(def PQTRANS_ACTIVE _pq/PQTRANS_ACTIVE)
+(def PQTRANS_INERROR _pq/PQTRANS_INERROR)
+(def PQTRANS_INTRANS _pq/PQTRANS_INTRANS)
 # PQresultStatus
 (def PGRES_EMPTY_QUERY _pq/PGRES_EMPTY_QUERY)
 (def PGRES_COMMAND_OK _pq/PGRES_COMMAND_OK)
@@ -113,6 +118,8 @@
 
 (def status _pq/status)
 
+(def transaction-status _pq/transaction-status)
+
 (def close _pq/close)
 
 (def escape-literal _pq/escape-literal)
@@ -158,6 +165,8 @@
   [t]
   (and (table? t)
        (= (table/getproto t) rollback-sentinal)))
+
+(defn in-transaction? [conn] (= (transaction-status conn) PQTRANS_INTRANS))
 
 (defn txn*
   "function form of txn"
