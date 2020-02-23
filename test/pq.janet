@@ -137,8 +137,27 @@
     (:close conn2)
     (set conn3 nil)
     (gccollect))
+  
+  # Test txn macro
+
+  (assert (not (pq/in-transaction? conn)))
+  (assert 
+    (=
+      0
+      (pq/txn conn {}
+        (assert (pq/in-transaction? conn))
+        (pq/exec conn "create table t(a text);")
+        (pq/val conn "select count(*)::float from t;"))))
+
+  (assert 
+    (=
+      7
+      (pq/txn conn {}
+        (def v (pq/val conn "select count(*)::float from t;"))
+        (pq/rollback 7)
+        v)))
+  (assert (not (pq/in-transaction? conn)))
 
   ))
-
 
 (run-tests)
