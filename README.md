@@ -14,6 +14,17 @@ Basic usage:
 [{"name" "ac" "data" @{"some" "data"}}]
 ```
 
+Transactions:
+
+```
+(import pq)
+...
+(pq/tx conn {:mode "isolation serializable read only" :retry true}
+  (unless (pq/val conn "select ....")
+    (pq/rollback))
+  (pq/val conn "select ...."))
+```
+
 Custom type encoding/decoding:
 
 ```
@@ -31,7 +42,6 @@ Custom type encoding/decoding:
 (pq/all conn "select * from tab;")
 
 ```
-
 
 Error handling:
 
