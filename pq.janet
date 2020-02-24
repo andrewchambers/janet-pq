@@ -148,50 +148,45 @@
 
 (def result-unpack _pq/result-unpack)
 
-
-# The rollback sentinal is set to the prototype table of a rollback object.
-(def- rollback-sentinal @{})
+(defn in-transaction? [conn] (= (transaction-status conn) PQTRANS_INTRANS))
 
 (defn rollback
-  "
-    Non local return to the outer pq transaction.
-  "
-  [&opt v]
-  (def e @{:v v})
-  (table/setproto e rollback-sentinal)
-  (error e))
+  [conn &opt v]
+  (return conn @[:rollback v]))
 
-(defn- rollback?
-  [t]
-  (and (table? t)
-       (= (table/getproto t) rollback-sentinal)))
-
-(defn in-transaction? [conn] (= (transaction-status conn) PQTRANS_INTRANS))
+(defn commit
+  [conn &opt v]
+  (return conn @[:commit v]))
 
 (defn txn*
   "function form of txn"
   [conn options ftx]
   (def retry (get options :retry false))
   (def mode (get options :mode ""))
+  (var commited false)
   (try
     (do
-      (exec conn (string "begin " mode ";"))
-      (def v (ftx))
-      (exec conn "commit;")
-      v)
-    ([err f]
-      (when (= (status conn) CONNECTION_BAD)
-        (propagate err f))
-      (exec conn "rollback;")
-      (cond
-        (rollback? err)
-          (err :v)
-        (and
+      (defer (unless (or commited (= (status conn) CONNECTION_BAD))
+               (exec conn "rollback;"))
+        (exec conn (string "begin " mode ";"))
+        (match (prompt conn
+                 (def v (ftx))
+                 @[:commit v])
+          @[:commit v]
+          (do
+            (exec conn "commit;")
+            (set commited true)
+            v)
+          @[:rollback v]
+            v
+          (error "txn block returned an unexpected value"))))
+  ([err f]
+    (if (and
           retry
           (error? err)
           (= (result-error-field err PG_DIAG_SQLSTATE) "40001"))
-          (txn* conn options ftx)
-        (propagate err f)))))
+      (txn* conn options ftx)
+      (propagate err f)))))
 
 (defmacro txn
   `
