@@ -142,6 +142,7 @@
 
   (assert (not (pq/in-transaction? conn)))
   
+  # basic commit
   (assert 
     (=
       0
@@ -150,13 +151,51 @@
         (pq/exec conn "create table t(a text);")
         (pq/val conn "select count(*)::float from t;"))))
 
+  # manual commit
+  (assert
+    (=
+      :success
+      (pq/txn conn {}
+        (pq/exec conn "create table t2(b text);")
+        (pq/commit conn :success))))
+
+  # error rollback
+  (protect 
+    (pq/txn conn {}
+      (pq/exec conn "drop table t;")
+      (error "fudge")))
+  
+  (assert (zero? (pq/val conn "select count(*)::float from t;")))
+
+  # user signal rollback
+  (each sig [0 1 2 3]
+    (def fb (fiber/new :t))
+    (defn action []
+      (pq/txn conn {}
+        (pq/exec conn "drop table t;")
+        (signal sig :val)))
+    (resume action fb))
+    
+  (assert (zero? (pq/val conn "select count(*)::float from t;")))
+
+  # far return rollback
+  (label outer
+    (pq/txn conn {}
+      (pq/exec conn "drop table t;")
+      (return outer)))
+
+  (assert (zero? (pq/val conn "select count(*)::float from t;")))
+
+  # manual rollback
   (assert 
     (=
       7
       (pq/txn conn {}
-        (def v (pq/val conn "select count(*)::float from t;"))
+        (assert (zero? (pq/val conn "select count(*)::float from t;")))
+        (pq/exec conn "drop table t;")
         (pq/rollback conn 7)
-        v)))
+        123)))
+
   (assert (not (pq/in-transaction? conn)))
 
   ))

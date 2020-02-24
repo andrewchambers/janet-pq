@@ -97,10 +97,10 @@
 (defn row
   "Run a query like exec, returning the first result"
   [conn query & params]
-  (def rows (all conn query ;params))
-  (if (empty? rows)
-    nil
-    (first rows)))
+  (if-let [rows (all conn query ;params)]
+    (if (empty? rows)
+      nil
+      (first rows))))
 
 (defn col
   "Run a query that returns a single column with many rows
@@ -152,41 +152,53 @@
 
 (defn rollback
   [conn &opt v]
-  (return conn @[:rollback v]))
+  (signal 0 [conn @[:rollback v]]))
 
 (defn commit
   [conn &opt v]
-  (return conn @[:commit v]))
+  (signal 0 [conn @[:commit v]]))
 
 (defn txn*
   "function form of txn"
   [conn options ftx]
   (def retry (get options :retry false))
   (def mode (get options :mode ""))
-  (var commited false)
   (try
     (do
-      (defer (unless (or commited (= (status conn) CONNECTION_BAD))
-               (exec conn "rollback;"))
-        (exec conn (string "begin " mode ";"))
-        (match (prompt conn
-                 (def v (ftx))
-                 @[:commit v])
-          @[:commit v]
+      (exec conn (string "begin " mode ";"))
+      (def fb (fiber/new ftx :i0123))
+      (def v (resume fb))
+      (if (= (fiber/status fb) :dead)
+        (do
+          (exec conn "commit;")
+          v)
+        (if (and (= (fiber/status fb) :user0)
+                 (= (get v 0) conn))
+          (let [action (get-in v [0 0])
+                value (get-in v [0 1])]
+            (case action
+              :commit
+                (do
+                  (exec conn "commit;")
+                  value)
+              :rollback
+                (do
+                  (exec conn "rollback;")
+                  value)
+              (error "misuse of txn* error")))
           (do
-            (exec conn "commit;")
-            (set commited true)
-            v)
-          @[:rollback v]
-            v
-          (error "txn block returned an unexpected value"))))
+            (exec conn "rollback;")
+            (propagate v fb)))))
   ([err f]
     (if (and
           retry
           (error? err)
           (= (result-error-field err PG_DIAG_SQLSTATE) "40001"))
       (txn* conn options ftx)
-      (propagate err f)))))
+      (do
+        (unless (= (status conn) CONNECTION_BAD)
+          (exec conn "rollback;"))
+        (propagate err f))))))
 
 (defmacro txn
   `
