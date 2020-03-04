@@ -324,6 +324,7 @@ static Janet jpq_exec(int32_t argc, Janet *argv) {
       pformats[i] = 1;
       break;
     }
+    case JANET_KEYWORD:
     case JANET_STRING: {
       const char *s = (char *)janet_unwrap_string(j);
       size_t l = janet_string_length(s);

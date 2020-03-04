@@ -105,7 +105,6 @@
   (round-trip-test {:coltype "json" :val (pq/json @{"hello" "json"}) :expected @{"hello" "json"}})
   # jsonb
   (round-trip-test {:coltype "jsonb" :val (pq/jsonb @{"hello" "json"}) :expected @{"hello" "json"}})
-  
 
   # test slow path where we smalloc params.
   (do
@@ -115,7 +114,7 @@
     (assert (deep= (pq/all conn "select * from t;")
                    @[@{:a "a" :b "b" :c "c" :d "d" :e "e" :f "f" :g "g" :h "h"}]))
     (pq/exec conn "drop table t;"))
-
+  
   # escaping functions.
   (assert (= (pq/escape-literal conn "123") "'123'"))
   (assert (= (pq/escape-identifier conn "123") "\"123\""))
@@ -150,7 +149,7 @@
         (assert (pq/in-transaction? conn))
         (pq/exec conn "create table t(a text);")
         (pq/val conn "select count(*)::float from t;"))))
-
+  
   # manual commit
   (assert
     (=
@@ -169,12 +168,12 @@
 
   # user signal rollback
   (each sig [0 1 2 3]
-    (def fb (fiber/new :t))
     (defn action []
       (pq/txn conn {}
         (pq/exec conn "drop table t;")
         (signal sig :val)))
-    (resume action fb))
+    (def fb (fiber/new action :t))
+    (resume fb))
     
   (assert (zero? (pq/val conn "select count(*)::float from t;")))
 
@@ -195,8 +194,17 @@
         (pq/exec conn "drop table t;")
         (pq/rollback conn 7)
         123)))
-
   (assert (not (pq/in-transaction? conn)))
+
+  # custom enum type
+
+    (pq/exec conn "CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
+    (pq/exec conn "create table person(name text, current_mood mood);")
+    (put pq/*decoders* (pq/val conn "SELECT oid FROM pg_type WHERE typname = 'mood';") keyword)
+    (pq/exec conn "insert into person values($1, $2);" "a" "happy")
+    (pq/exec conn "insert into person values($1, $2);" "b" :sad)
+    (assert (= (pq/val conn "select current_mood from person where name = 'a'") :happy))
+    (assert (= (pq/val conn "select current_mood from person where name = 'b'") :sad))
 
   ))
 

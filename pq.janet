@@ -39,11 +39,13 @@
   @{
     16 |(= $0 "t")
     17 identity
+    18 identity
     19 keyword
     20 int/s64
     21 scan-number
     23 scan-number
     25 identity
+    26 scan-number
     114 json/decode
     700 scan-number
     701 scan-number
@@ -152,11 +154,11 @@
 
 (defn rollback
   [conn &opt v]
-  (signal 0 [conn @[:rollback v]]))
+  (signal 0 [conn [:rollback v]]))
 
 (defn commit
   [conn &opt v]
-  (signal 0 [conn @[:commit v]]))
+  (signal 0 [conn [:commit v]]))
 
 (defn txn*
   "function form of txn"
@@ -168,27 +170,23 @@
       (exec conn (string "begin " mode ";"))
       (def fb (fiber/new ftx :i0123))
       (def v (resume fb))
-      (if (= (fiber/status fb) :dead)
-        (do
-          (exec conn "commit;")
-          v)
-        (if (and (= (fiber/status fb) :user0)
-                 (= (get v 0) conn))
-          (let [action (get-in v [0 0])
-                value (get-in v [0 1])]
+      (match [v (fiber/status fb)]
+        [v :dead]
+          (do
+            (exec conn "commit;")
+            v)
+        ([[c [action v]] :user0] (= c conn))
+          (do 
             (case action
               :commit
-                (do
-                  (exec conn "commit;")
-                  value)
+                (exec conn "commit;")
               :rollback
-                (do
-                  (exec conn "rollback;")
-                  value)
-              (error "misuse of txn* error")))
-          (do
-            (exec conn "rollback;")
-            (propagate v fb)))))
+                (exec conn "rollback;")
+              (error "misuse of txn*"))
+            v)
+        (do
+          (exec conn "rollback;")
+          (propagate v fb))))
   ([err f]
     (if (and
           retry
