@@ -171,6 +171,12 @@
       (def fb (fiber/new ftx :i0123))
       (def v (resume fb))
       (match [v (fiber/status fb)]
+        # XXX https://github.com/janet-lang/janet/issues/297
+        # matching nil explicitly here until this issue is resolved.
+        [nil :dead]
+          (do
+            (exec conn "commit;")
+            v)
         [v :dead]
           (do
             (exec conn "commit;")
