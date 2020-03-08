@@ -21,7 +21,7 @@ Transactions:
 ...
 (pq/tx conn {:mode "isolation serializable read only" :retry true}
   (unless (pq/val conn "select ....")
-    (pq/rollback))
+    (pq/rollback conn))
   (pq/val conn "select ...."))
 ```
 
