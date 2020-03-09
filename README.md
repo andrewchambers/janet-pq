@@ -10,8 +10,12 @@ Basic usage:
 (def conn (pq/connect "postgresql://localhost?dbname=postgres"))
 (pq/exec conn "create table users(name text, data jsonb);")
 (pq/exec conn "insert into users(name, data) values($1, $2);" "ac" (pq/jsonb @{"some" "data"}))
-(pq/all conn "select * from users where name = $1;" "ac")
-[{"name" "ac" "data" @{"some" "data"}}]
+(pq/row conn "select * from users where name = $1;" "ac")
+{:name "ac" :data @{"some" "data"}}
+(pq/all conn "select * from users")
+[{:name "ac" :data @{"some" "data"}} ...]
+(pq/val conn "select data from users where name = $1;" "ac")
+@{"some" "data"}
 ```
 
 Transactions:
