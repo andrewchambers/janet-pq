@@ -42,6 +42,6 @@
 
 (declare-native
     :name "_pq"
-    :cflags (pkg-config "libpq --cflags")
+    :cflags ["-g" ;(pkg-config "libpq --cflags")]
     :lflags (pkg-config "libpq --libs")
     :source ["pq.c"])
