@@ -1,93 +1,93 @@
-# pq
+# ```pq```
 
-## pq/*decoders*
+## ```pq/*decoders*```
 type: table
 
-## pq/CONNECTION_BAD
+## ```pq/CONNECTION_BAD```
 type: number
 
-## pq/CONNECTION_OK
+## ```pq/CONNECTION_OK```
 type: number
 
-## pq/PGRES_BAD_RESPONSE
+## ```pq/PGRES_BAD_RESPONSE```
 type: number
 
-## pq/PGRES_COMMAND_OK
+## ```pq/PGRES_COMMAND_OK```
 type: number
 
-## pq/PGRES_EMPTY_QUERY
+## ```pq/PGRES_EMPTY_QUERY```
 type: number
 
-## pq/PGRES_FATAL_ERROR
+## ```pq/PGRES_FATAL_ERROR```
 type: number
 
-## pq/PGRES_TUPLES_OK
+## ```pq/PGRES_TUPLES_OK```
 type: number
 
-## pq/PG_DIAG_COLUMN_NAME
+## ```pq/PG_DIAG_COLUMN_NAME```
 type: number
 
-## pq/PG_DIAG_CONSTRAINT_NAME
+## ```pq/PG_DIAG_CONSTRAINT_NAME```
 type: number
 
-## pq/PG_DIAG_CONTEXT
+## ```pq/PG_DIAG_CONTEXT```
 type: number
 
-## pq/PG_DIAG_DATATYPE_NAME
+## ```pq/PG_DIAG_DATATYPE_NAME```
 type: number
 
-## pq/PG_DIAG_INTERNAL_POSITION
+## ```pq/PG_DIAG_INTERNAL_POSITION```
 type: number
 
-## pq/PG_DIAG_INTERNAL_QUERY
+## ```pq/PG_DIAG_INTERNAL_QUERY```
 type: number
 
-## pq/PG_DIAG_MESSAGE_DETAIL
+## ```pq/PG_DIAG_MESSAGE_DETAIL```
 type: number
 
-## pq/PG_DIAG_MESSAGE_HINT
+## ```pq/PG_DIAG_MESSAGE_HINT```
 type: number
 
-## pq/PG_DIAG_MESSAGE_PRIMARY
+## ```pq/PG_DIAG_MESSAGE_PRIMARY```
 type: number
 
-## pq/PG_DIAG_SCHEMA_NAME
+## ```pq/PG_DIAG_SCHEMA_NAME```
 type: number
 
-## pq/PG_DIAG_SEVERITY
+## ```pq/PG_DIAG_SEVERITY```
 type: number
 
-## pq/PG_DIAG_SOURCE_FILE
+## ```pq/PG_DIAG_SOURCE_FILE```
 type: number
 
-## pq/PG_DIAG_SOURCE_FUNCTION
+## ```pq/PG_DIAG_SOURCE_FUNCTION```
 type: number
 
-## pq/PG_DIAG_SOURCE_LINE
+## ```pq/PG_DIAG_SOURCE_LINE```
 type: number
 
-## pq/PG_DIAG_SQLSTATE
+## ```pq/PG_DIAG_SQLSTATE```
 type: number
 
-## pq/PG_DIAG_STATEMENT_POSITION
+## ```pq/PG_DIAG_STATEMENT_POSITION```
 type: number
 
-## pq/PG_DIAG_TABLE_NAME
+## ```pq/PG_DIAG_TABLE_NAME```
 type: number
 
-## pq/PQTRANS_ACTIVE
+## ```pq/PQTRANS_ACTIVE```
 type: number
 
-## pq/PQTRANS_IDLE
+## ```pq/PQTRANS_IDLE```
 type: number
 
-## pq/PQTRANS_INERROR
+## ```pq/PQTRANS_INERROR```
 type: number
 
-## pq/PQTRANS_INTRANS
+## ```pq/PQTRANS_INTRANS```
 type: number
 
-## pq/all
+## ```pq/all```
 type: function
 
 [pq.janet#L86](pq.janet#L86)
@@ -103,12 +103,12 @@ type: function
     
 ```
 
-## pq/close
+## ```pq/close```
 type: cfunction
 
 [pq.c#L461](pq.c#L461)
 
-## pq/col
+## ```pq/col```
 type: function
 
 [pq.janet#L107](pq.janet#L107)
@@ -120,7 +120,7 @@ type: function
     columns unpacked
 ```
 
-## pq/commit
+## ```pq/commit```
 type: function
 
 [pq.janet#L159](pq.janet#L159)
@@ -131,27 +131,27 @@ type: function
     
 ```
 
-## pq/connect
+## ```pq/connect```
 type: cfunction
 
 [pq.c#L231](pq.c#L231)
 
-## pq/error?
+## ```pq/error?```
 type: cfunction
 
 [pq.c#L117](pq.c#L117)
 
-## pq/escape-identifier
+## ```pq/escape-identifier```
 type: cfunction
 
 [pq.c#L480](pq.c#L480)
 
-## pq/escape-literal
+## ```pq/escape-literal```
 type: cfunction
 
 [pq.c#L468](pq.c#L468)
 
-## pq/exec
+## ```pq/exec```
 type: function
 
 [pq.janet#L69](pq.janet#L69)
@@ -172,7 +172,7 @@ type: function
     Otherwise params can have the method :pq/encode returning an encoded triple as described.
 ```
 
-## pq/in-transaction?
+## ```pq/in-transaction?```
 type: function
 
 [pq.janet#L153](pq.janet#L153)
@@ -183,7 +183,7 @@ type: function
     
 ```
 
-## pq/json
+## ```pq/json```
 type: function
 
 [pq.janet#L57](pq.janet#L57)
@@ -194,7 +194,7 @@ type: function
     
 ```
 
-## pq/jsonb
+## ```pq/jsonb```
 type: function
 
 [pq.janet#L61](pq.janet#L61)
@@ -205,62 +205,62 @@ type: function
     
 ```
 
-## pq/raw-exec
+## ```pq/raw-exec```
 type: cfunction
 
 [pq.c#L260](pq.c#L260)
 
-## pq/result-error-field
+## ```pq/result-error-field```
 type: cfunction
 
 [pq.c#L110](pq.c#L110)
 
-## pq/result-error-message
+## ```pq/result-error-message```
 type: cfunction
 
 [pq.c#L104](pq.c#L104)
 
-## pq/result-fformat
+## ```pq/result-fformat```
 type: cfunction
 
 [pq.c#L90](pq.c#L90)
 
-## pq/result-fname
+## ```pq/result-fname```
 type: cfunction
 
 [pq.c#L66](pq.c#L66)
 
-## pq/result-fnumber
+## ```pq/result-fnumber```
 type: cfunction
 
 [pq.c#L74](pq.c#L74)
 
-## pq/result-ftype
+## ```pq/result-ftype```
 type: cfunction
 
 [pq.c#L82](pq.c#L82)
 
-## pq/result-nfields
+## ```pq/result-nfields```
 type: cfunction
 
 [pq.c#L59](pq.c#L59)
 
-## pq/result-ntuples
+## ```pq/result-ntuples```
 type: cfunction
 
 [pq.c#L52](pq.c#L52)
 
-## pq/result-status
+## ```pq/result-status```
 type: cfunction
 
 [pq.c#L98](pq.c#L98)
 
-## pq/result-unpack
+## ```pq/result-unpack```
 type: cfunction
 
 [pq.c#L126](pq.c#L126)
 
-## pq/rollback
+## ```pq/rollback```
 type: function
 
 [pq.janet#L155](pq.janet#L155)
@@ -271,7 +271,7 @@ type: function
     
 ```
 
-## pq/row
+## ```pq/row```
 type: function
 
 [pq.janet#L99](pq.janet#L99)
@@ -282,17 +282,17 @@ type: function
     Run a query like exec, returning the first result
 ```
 
-## pq/status
+## ```pq/status```
 type: cfunction
 
 [pq.c#L447](pq.c#L447)
 
-## pq/transaction-status
+## ```pq/transaction-status```
 type: cfunction
 
 [pq.c#L454](pq.c#L454)
 
-## pq/txn
+## ```pq/txn```
 type: function
 
 [pq.janet#L207](pq.janet#L207)
@@ -325,7 +325,7 @@ type: function
     
 ```
 
-## pq/txn*
+## ```pq/txn*```
 type: function
 
 [pq.janet#L163](pq.janet#L163)
@@ -336,7 +336,7 @@ type: function
     function form of txn
 ```
 
-## pq/val
+## ```pq/val```
 type: function
 
 [pq.janet#L113](pq.janet#L113)
