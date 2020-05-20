@@ -5,13 +5,13 @@
 
 (defn cleanup []
   (each d (->>
-            (sh/$$ ["find" "/tmp" "-maxdepth" "1" "-type" "d" "-name" "janet-pq-test.tmp.*"])
+            (sh/$< find /tmp -maxdepth 1 -type d -name janet-pq-test.tmp.*)
             (string/split "\n")
             (map string/trim)
             (filter (comp not empty?)))
     (print "cleaning up " d "...")
-    (sh/$? ["pg_ctl" "-s" "-w" "-D" d "stop" "-m" "immediate"])
-    (sh/$ ["rm" "-rf" d])))
+    (sh/$? pg_ctl -s -w -D ,d stop -m immediate)
+    (sh/$ rm -rf ,d)))
 
 (var pg-data-dir nil)
 
@@ -26,11 +26,25 @@
   (cleanup)
 
   (set pg-data-dir 
-    (string (sh/$$_ ["mktemp" "-d" "/tmp/janet-pq-test.tmp.XXXXX"])))
+    (sh/$<_ mktemp -d /tmp/janet-pq-test.tmp.XXXXX))
+  
   (print "Launching postgres in " pg-data-dir "...")
+  (sh/$ pg_ctl -s -D ,pg-data-dir initdb -o --auth=trust)
+  
+  (def pg-cfg (string pg-data-dir "/postgresql.conf"))
+  (def pg-unix-socket-dir (string pg-data-dir "/_sockets"))
+  (os/mkdir pg-unix-socket-dir)
 
-  (sh/$ ["pg_ctl" "-s" "-D" pg-data-dir "initdb" "-o" "--auth=trust"])
-  (sh/$ ["pg_ctl" "-s" "-w" "-D" pg-data-dir  "start" "-l" (string pg-data-dir "/test-log-file.txt")])
+  (->> (slurp pg-cfg)
+       (string/replace "#unix_socket_directories = '/run/postgresql'"
+                       (string "unix_socket_directories = '" pg-unix-socket-dir "'"))
+       (spit pg-cfg))
+  (def log (string pg-data-dir "/test-log-file.txt"))
+  (try
+    (sh/$ pg_ctl -s -w -D ,pg-data-dir start -l ,log)
+    ([e f]
+      (eprintf "start failed, log:\n%s" (string (slurp log)))
+      (propagate e f)))
 
   (defer (cleanup)
       (tests)))
