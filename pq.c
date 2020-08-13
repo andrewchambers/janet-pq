@@ -116,6 +116,8 @@ static Janet jpq_result_error_field(int32_t argc, Janet *argv) {
 
 static Janet jpq_error_pred(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
+  if (!janet_checkabstract(argv[0], &pq_result_type))
+    return janet_wrap_boolean(0);
   JPQresult *jpqr = (JPQresult *)janet_getabstract(argv, 0, &pq_result_type);
   int status = PQresultStatus(jpqr->r);
   return janet_wrap_boolean(status != PGRES_TUPLES_OK &&
