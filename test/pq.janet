@@ -120,7 +120,6 @@
     #bytea
     (round-trip-test {:coltype "bytea" :val "hello" :expected "hello"})
     (round-trip-test {:coltype "bytea" :val @"hello" :expected "hello"})
-    (round-trip-test {:coltype "bytea" :val @"hello" :expected "hello"})
     (each randbuf [@"" (os/cryptorand 1) (os/cryptorand 2) (os/cryptorand 63) (os/cryptorand 64)]
       (round-trip-test {:coltype "bytea" :val randbuf :expected (string randbuf)}))
     # json
