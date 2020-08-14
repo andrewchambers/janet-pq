@@ -34,11 +34,10 @@
 (def PG_DIAG_SOURCE_LINE _pq/PG_DIAG_SOURCE_LINE)
 (def PG_DIAG_SOURCE_FUNCTION _pq/PG_DIAG_SOURCE_FUNCTION)
 
-
 (def *decoders*
   @{
     16 |(= $0 "t")
-    17 identity
+    17 _pq/decode-bytea
     18 identity
     19 keyword
     20 int/s64

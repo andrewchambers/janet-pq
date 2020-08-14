@@ -492,6 +492,43 @@ static Janet jpq_escape_identifier(int32_t argc, Janet *argv) {
   return janet_wrap_string(result);
 }
 
+static int decode_nibble(uint8_t b) {
+  if (b >= '0' && b <= '9')
+    return b - '0';
+  if (b >= 'a' && b <= 'f')
+    return 10 + b - 'a';
+  if (b >= 'A' && b <= 'F')
+    return 10 + b - 'A';
+  return 0;
+}
+
+static Janet jpq_decode_bytea(int32_t argc, Janet *argv) {
+  const uint8_t *in;
+  uint8_t *out;
+
+  janet_fixarity(argc, 1);
+  JanetByteView b = janet_getbytes(argv, 0);
+  size_t nbytes = (size_t)b.len;
+
+  if (nbytes < 2 || b.bytes[0] != '\\' || b.bytes[1] != 'x')
+    janet_panic("bytea encoded data should begin with '\\x'");
+
+  nbytes -= 2;
+  in = b.bytes + 2;
+  out = janet_smalloc(nbytes / 2);
+
+  size_t nout = 0;
+  for (size_t i = 0; i < nbytes; i += 2) {
+    uint8_t c1 = decode_nibble(in[i]);
+    uint8_t c2 = decode_nibble((i + 1 < nbytes) ? in[i + 1] : 0);
+    out[nout++] = (c1 << 4) | c2;
+  }
+
+  Janet s = janet_stringv(out, nout);
+  janet_sfree(out);
+  return s;
+}
+
 #define upstream_doc "See libpq documentation at https://www.postgresql.org."
 
 static const JanetReg cfuns[] = {
@@ -519,6 +556,7 @@ static const JanetReg cfuns[] = {
     {"result-error-message", jpq_result_error_message, upstream_doc},
     {"result-error-field", jpq_result_error_field, upstream_doc},
     {"result-unpack", jpq_result_unpack, upstream_doc},
+    {"decode-bytea", jpq_decode_bytea, "(pq/decode-bytea buf)"},
     {NULL, NULL, NULL}};
 
 JANET_MODULE_ENTRY(JanetTable *env) {
