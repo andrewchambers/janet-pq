@@ -50,6 +50,7 @@
     701 scan-number
     1042 identity
     1043 identity
+    1700 scan-number
     3802 json/decode
   })
 
@@ -67,14 +68,14 @@
 
 (defn exec
   "Execute a query against conn.\n\n
-   
+
    If the result is an error, it is thrown, use error? to check if a thrown error is a pq error, which can be inspected with the result-* functions.\n\n
 
    Params can be nil|boolean|string|buffer|number|u64|s64|array|tuple.\n\n
 
-   If a param is an array or tuple, this must be a triple of 
+   If a param is an array or tuple, this must be a triple of
    [oid:number is-binary:boolean encoded:string|buffer].\n\n
-   
+
    Otherwise params can have the method :pq/encode returning an encoded triple as described."
   [conn query & params]
   (def result (_pq/exec conn query ;params))
@@ -84,7 +85,7 @@
 
 (defn all
   "Return all results from a query.\n\n
-   
+
    Like exec, with the addition that returned rows are
    decoded by matching the returned oid by to the
    corresponding decoder function in the table *decoders*.\n\n
@@ -181,7 +182,7 @@
             (exec conn "commit;")
             v)
         ([[c [action v]] :user0] (= c conn))
-          (do 
+          (do
             (case action
               :commit
                 (exec conn "commit;")
@@ -230,5 +231,3 @@
   `
   [conn options & body]
   ~(,txn* ,conn ,options (fn [] ,(tuple 'do ;body))))
-
-
