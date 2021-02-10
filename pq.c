@@ -3,6 +3,10 @@
 #include <janet.h>
 #include <libpq-fe.h>
 
+#if defined(__APPLE_CC__)
+#include <math.h>
+#endif
+
 typedef struct {
   PGresult *r;
 } JPQresult;
