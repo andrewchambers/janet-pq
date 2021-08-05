@@ -239,7 +239,7 @@
   ~(,txn* ,conn ,options (fn [] ,(tuple 'do ;body))))
 
 (defn collect-notifications
-  "Collect all queued notifications into an array"
+  "Collect all queued notifications into an array."
   [conn &opt notifications]
   (default notifications @[])
   (while true
@@ -258,3 +258,20 @@
       (consume-input conn)
       (collect-notifications conn notifications)))
   notifications)
+
+(defn discard-notifications
+  "Discard all queued notifications, returning how many were discarded."
+  [conn]
+  (var count 0)
+  (while (notifies conn) (++ count))
+  count)
+
+(defn wait-for-and-discard-notifications
+  "Wait for any notifications and then discard them, returning how many were discarded."
+  [conn timeout]
+  (var n (discard-notifications conn))
+  (when (zero? n)
+    (when (wait-for-pending-data conn timeout)
+      (consume-input conn)
+      (set n (discard-notifications conn))))
+  n)

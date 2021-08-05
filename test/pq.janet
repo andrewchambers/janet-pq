@@ -233,6 +233,10 @@
       (pq/exec conn2 "notify foobar, 'goodbye';"))
     (assert (not (empty? (pq/wait-for-notifications conn 0.1))))
 
+    (pq/exec conn "notify foobar;")
+    (pq/exec conn "notify foobar;")
+    (assert (= 2 (pq/wait-for-and-discard-notifications conn 0.1)))
+
     # custom enum type
 
     (pq/exec conn "CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
