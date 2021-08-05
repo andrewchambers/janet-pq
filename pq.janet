@@ -118,8 +118,11 @@
     (when (not (empty? v))
       (first v))))
 
-
 (def notifies _pq/notifies)
+
+(def consume-input _pq/consume-input)
+
+(def wait-for-pending-data _pq/wait-for-pending-data)
 
 (def status _pq/status)
 
@@ -234,3 +237,24 @@
   `
   [conn options & body]
   ~(,txn* ,conn ,options (fn [] ,(tuple 'do ;body))))
+
+(defn collect-notifications
+  "Collect all queued notifications into an array"
+  [conn &opt notifications]
+  (default notifications @[])
+  (while true
+    (if-let [n (notifies conn)]
+      (array/push notifications n)
+      (break)))
+  notifications)
+
+(defn wait-for-notifications
+  "Wait for a new notification or timeout, returning an array of all notifications found."
+  [conn timeout]
+  (def notifications @[])
+  (collect-notifications conn notifications)
+  (when (empty? notifications)
+    (when (wait-for-pending-data conn timeout)
+      (consume-input conn)
+      (collect-notifications conn notifications)))
+  notifications)

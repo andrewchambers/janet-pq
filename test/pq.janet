@@ -217,7 +217,7 @@
                 123)))
     (assert (not (pq/in-transaction? conn)))
 
-    # notifies api
+    # notification api
 
     (assert (= nil (pq/notifies conn)))
     (pq/exec conn "listen foobar;")
@@ -228,6 +228,10 @@
       (assert (= "foobar" (get n :name)))
       (assert (= "hello" (get n :extra))))
     (assert (= nil (pq/notifies conn)))
+    (assert (empty? (pq/wait-for-notifications conn 0.01)))
+    (with [conn2 (connect)]
+      (pq/exec conn2 "notify foobar, 'goodbye';"))
+    (assert (not (empty? (pq/wait-for-notifications conn 0.1))))
 
     # custom enum type
 

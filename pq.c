@@ -1,4 +1,5 @@
 #include <alloca.h>
+#include <errno.h>
 #include <inttypes.h>
 #include <janet.h>
 #include <libpq-fe.h>
@@ -464,6 +465,46 @@ static Janet jpq_transaction_status(int32_t argc, Janet *argv) {
   return janet_wrap_integer(PQtransactionStatus(ctx->conn));
 }
 
+static Janet jpq_wait_for_pending_data(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 2);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  double delay = janet_getnumber(argv, 1);
+  __ensure_ctx_ok(ctx);
+
+  int sockfd = PQsocket(ctx->conn);
+  if (sockfd < 0)
+    janet_panic("no connected socket");
+
+  int select_rc;
+
+  do {
+    fd_set set;
+    struct timeval timeout;
+
+    FD_ZERO(&set);
+    FD_SET(sockfd, &set);
+    timeout.tv_sec = (time_t)delay;
+    timeout.tv_usec = (delay <= UINT32_MAX)
+                          ? (long)((delay - ((uint32_t)delay)) * 1000000)
+                          : 0;
+    select_rc = select(FD_SETSIZE, &set, NULL, NULL, &timeout);
+  } while (select_rc < 0 && errno == EINTR);
+
+  if (select_rc == -1)
+    janet_panicf("io error on pq socket: %s", strerror(errno));
+
+  return janet_wrap_boolean(select_rc != 0);
+}
+
+static Janet jpq_consume_input(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 1);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  __ensure_ctx_ok(ctx);
+  if (!PQconsumeInput(ctx->conn))
+    janet_panicv(safe_cstringv(PQerrorMessage(ctx->conn)));
+  return janet_wrap_nil();
+}
+
 static Janet jpq_notifies(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
@@ -474,10 +515,10 @@ static Janet jpq_notifies(int32_t argc, Janet *argv) {
     return janet_wrap_nil();
 
   JanetKV *st = janet_struct_begin(3);
-  janet_struct_put(st, janet_ckeywordv("name") , janet_cstringv(nf->relname));
-  janet_struct_put(st, janet_ckeywordv("pid") , janet_wrap_number(nf->be_pid));
+  janet_struct_put(st, janet_ckeywordv("name"), janet_cstringv(nf->relname));
+  janet_struct_put(st, janet_ckeywordv("pid"), janet_wrap_number(nf->be_pid));
   if (nf->extra)
-    janet_struct_put(st, janet_ckeywordv("extra") , janet_cstringv(nf->extra));
+    janet_struct_put(st, janet_ckeywordv("extra"), janet_cstringv(nf->extra));
 
   PQfreemem(nf);
 
@@ -559,6 +600,10 @@ static const JanetReg cfuns[] = {
     {"connect", jpq_connect,
      "(pq/connect url)\n\n"
      "Connect to a postgres server or raise an error."},
+    {"consume-input", jpq_consume_input, upstream_doc},
+    {"wait-for-pending-data", jpq_wait_for_pending_data,
+     "(pq/wait-for-pending-data ctx timeout)\n\n"
+     "Perform a select on the underlying connection waiting for data."},
     {"exec", jpq_exec, "See pq/exec"},
     {"close", jpq_close,
      "(pq/close ctx)\n\n"
