@@ -464,6 +464,26 @@ static Janet jpq_transaction_status(int32_t argc, Janet *argv) {
   return janet_wrap_integer(PQtransactionStatus(ctx->conn));
 }
 
+static Janet jpq_notifies(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 1);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
+  __ensure_ctx_ok(ctx);
+
+  PGnotify *nf = PQnotifies(ctx->conn);
+  if (!nf)
+    return janet_wrap_nil();
+
+  JanetKV *st = janet_struct_begin(3);
+  janet_struct_put(st, janet_ckeywordv("name") , janet_cstringv(nf->relname));
+  janet_struct_put(st, janet_ckeywordv("pid") , janet_wrap_number(nf->be_pid));
+  if (nf->extra)
+    janet_struct_put(st, janet_ckeywordv("extra") , janet_cstringv(nf->extra));
+
+  PQfreemem(nf);
+
+  return janet_wrap_struct(janet_struct_end(st));
+}
+
 static Janet jpq_close(int32_t argc, Janet *argv) {
   janet_fixarity(argc, 1);
   Context *ctx = (Context *)janet_getabstract(argv, 0, &pq_context_type);
@@ -547,6 +567,7 @@ static const JanetReg cfuns[] = {
      "(pq/error? result)\n\n"
      "Check if an object is a pq.result containing an error."},
     {"transaction-status", jpq_transaction_status, upstream_doc},
+    {"notifies", jpq_notifies, upstream_doc},
     {"status", jpq_status, upstream_doc},
     {"escape-literal", jpq_escape_literal, upstream_doc},
     {"escape-identifier", jpq_escape_identifier, upstream_doc},

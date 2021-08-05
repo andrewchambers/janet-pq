@@ -118,6 +118,9 @@
     (when (not (empty? v))
       (first v))))
 
+
+(def notifies _pq/notifies)
+
 (def status _pq/status)
 
 (def transaction-status _pq/transaction-status)

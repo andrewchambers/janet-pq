@@ -1,5 +1,4 @@
 (import sh)
-(import process)
 (import pq)
 
 
@@ -217,6 +216,18 @@
                 (pq/rollback conn 7)
                 123)))
     (assert (not (pq/in-transaction? conn)))
+
+    # notifies api
+
+    (assert (= nil (pq/notifies conn)))
+    (pq/exec conn "listen foobar;")
+    (with [conn2 (connect)]
+      (pq/exec conn2 "notify foobar, 'hello';"))
+    (pq/val conn "select 1;") # force read
+    (let [n (pq/notifies conn)]
+      (assert (= "foobar" (get n :name)))
+      (assert (= "hello" (get n :extra))))
+    (assert (= nil (pq/notifies conn)))
 
     # custom enum type
 
