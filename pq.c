@@ -6,6 +6,7 @@
 
 #if defined(__APPLE_CC__)
 #include <math.h>
+#include <sys/select.h>
 #endif
 
 typedef struct {
