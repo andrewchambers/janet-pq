@@ -1,5 +1,6 @@
 (declare-project
   :name "pq"
+  :description "Bindings to libpq (the C application programmer's interface to PostgreSQL)."
   :author "Andrew Chambers"
   :license "MIT"
   :url "https://github.com/andrewchambers/janet-pq"
