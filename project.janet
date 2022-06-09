@@ -28,13 +28,14 @@
   (peg/match peg s))
 
 (defn pkg-config [what]
-  (def f (file/popen (string "pkg-config " what)))
+  (def f (os/spawn ["pkg-config" "libpq" what] :p {:out :pipe}))
   (def v (->>
-           (file/read f :all)
+           (:read (f :out) :all)
            (string/trim)
            shsplit))
-  (unless (zero? (file/close f))
+  (unless (zero? (os/proc-wait f))
     (error "pkg-config failed!"))
+  (os/proc-close f)
   v)
 
 (declare-source
@@ -42,6 +43,6 @@
 
 (declare-native
     :name "_pq"
-    :cflags ["-g" ;(pkg-config "libpq --cflags")]
-    :lflags (pkg-config "libpq --libs")
+    :cflags ["-g" ;(pkg-config "--cflags")]
+    :lflags (pkg-config "--libs")
     :source ["pq.c"])
