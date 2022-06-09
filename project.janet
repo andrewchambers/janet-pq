@@ -33,8 +33,9 @@
            (:read (f :out) :all)
            (string/trim)
            shsplit))
-  (unless (zero? (os/proc-close f))
+  (unless (zero? (os/proc-wait f))
     (error "pkg-config failed!"))
+  (os/proc-close f)
   v)
 
 (declare-source
