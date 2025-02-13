@@ -1,6 +1,13 @@
 # janet-pq
 Bindings to libpq.
 
+Uses `spork` as a dependency. Install with:
+
+```
+jpm install spork
+jpm install pq
+```
+
 # quick-examples
 
 Basic usage:

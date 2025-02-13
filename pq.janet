@@ -1,5 +1,5 @@
 (import _pq)
-(import json)
+(import spork/json)
 
 #PQStatus
 (def CONNECTION_OK _pq/CONNECTION_OK)
