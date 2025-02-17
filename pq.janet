@@ -50,6 +50,7 @@
     701 scan-number
     1042 identity
     1043 identity
+    1114 identity # timestamp without time zone, returned as "2017-12-09 21:00:00"
     1700 scan-number
     3802 json/decode
   })
